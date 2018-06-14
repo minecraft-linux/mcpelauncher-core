@@ -2,8 +2,11 @@
 #include <log.h>
 #include <hybris/dlfcn.h>
 #include <dirent.h>
-#include <elf.h>
 #include <queue>
+
+extern "C" {
+    #include <hybris/jb/linker.h>
+}
 
 void* ModLoader::loadMod(std::string const& path) {
     void* handle = hybris_dlopen(path.c_str(), RTLD_LAZY);

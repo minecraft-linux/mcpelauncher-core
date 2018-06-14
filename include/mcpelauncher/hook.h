@@ -3,7 +3,10 @@
 #include <string>
 #include <vector>
 #include <map>
-#include <elf.h>
+
+extern "C" {
+    #include <hybris/jb/linker.h>
+}
 
 class HookManager {
 
