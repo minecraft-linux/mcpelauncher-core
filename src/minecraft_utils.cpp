@@ -71,6 +71,8 @@ void MinecraftUtils::setupHybris() {
     });
     HybrisUtils::hookAndroidLog();
     hybris_hook("mcpelauncher_hook", (void*) HookManager::hookFunction);
+    hybris_hook("mcpelauncher_log", (void*) Log::log);
+    hybris_hook("mcpelauncher_vlog", (void*) Log::vlog);
     // load stub libraries
 #ifdef USE_BIONIC_LIBC
     if (!load_empty_library("ld-android.so") ||
