@@ -55,6 +55,7 @@ void LauncherAppPlatform::initVtable(void* lib) {
     vtr.replace("_ZNK19AppPlatform_android10getDataUrlEv", &LauncherAppPlatform::getDataUrl);
     vtr.replace("_ZNK19AppPlatform_android14getUserDataUrlEv", &LauncherAppPlatform::getUserDataUrl);
     vtr.replace("_ZN19AppPlatform_android14getPackagePathEv", &LauncherAppPlatform::getPackagePath);
+    vtr.replace("_ZNK19AppPlatform_android14getPackagePathEv", &LauncherAppPlatform::getPackagePath);
     vtr.replace("_ZN11AppPlatform16hideMousePointerEv", &LauncherAppPlatform::hideMousePointer);
     vtr.replace("_ZN11AppPlatform16showMousePointerEv", &LauncherAppPlatform::showMousePointer);
     vtr.replace("_ZN19AppPlatform_android11swapBuffersEv", &LauncherAppPlatform::swapBuffers);
@@ -65,11 +66,17 @@ void LauncherAppPlatform::initVtable(void* lib) {
     vtr.replace("_ZN11AppPlatform8pickFileER18FilePickerSettings", &LauncherAppPlatform::pickFile);
     vtr.replace("_ZNK11AppPlatform19supportsFilePickingEv", &LauncherAppPlatform::supportsFilePicking);
     vtr.replace("_ZN19AppPlatform_android22getExternalStoragePathEv", &LauncherAppPlatform::getExternalStoragePath);
+    vtr.replace("_ZNK19AppPlatform_android22getExternalStoragePathEv", &LauncherAppPlatform::getExternalStoragePath);
     vtr.replace("_ZN19AppPlatform_android22getInternalStoragePathEv", &LauncherAppPlatform::getInternalStoragePath);
+    vtr.replace("_ZNK19AppPlatform_android22getInternalStoragePathEv", &LauncherAppPlatform::getInternalStoragePath);
     vtr.replace("_ZN19AppPlatform_android21getCurrentStoragePathEv", &LauncherAppPlatform::getCurrentStoragePath);
+    vtr.replace("_ZNK19AppPlatform_android21getCurrentStoragePathEv", &LauncherAppPlatform::getCurrentStoragePath);
     vtr.replace("_ZN19AppPlatform_android15getUserdataPathEv", &LauncherAppPlatform::getUserdataPath);
+    vtr.replace("_ZNK19AppPlatform_android15getUserdataPathEv", &LauncherAppPlatform::getUserdataPath);
     vtr.replace("_ZN19AppPlatform_android24getUserdataPathForLevelsEv", &LauncherAppPlatform::getUserdataPathForLevels);
-    vtr.replace("_ZN11AppPlatform20getAssetFileFullPathERKSs", &LauncherAppPlatform::getAssetFileFullPath);
+    vtr.replace("_ZNK19AppPlatform_android24getUserdataPathForLevelsEv", &LauncherAppPlatform::getUserdataPathForLevels);
+    vtr.replace("_ZN11AppPlatform20getAssetFileFullPathERKSs", &LauncherAppPlatform::getAssetFileFullPathOld);
+    vtr.replace("_ZN11AppPlatform20getAssetFileFullPathERKN4Core4PathE", &LauncherAppPlatform::getAssetFileFullPath);
     vtr.replace("_ZNK11AppPlatform14useCenteredGUIEv", &LauncherAppPlatform::useCenteredGUI);
     vtr.replace("_ZN19AppPlatform_android16getApplicationIdEv", &LauncherAppPlatform::getApplicationId);
     vtr.replace("_ZN19AppPlatform_android13getFreeMemoryEv", &LauncherAppPlatform::getFreeMemory); // legacy
@@ -88,9 +95,11 @@ void LauncherAppPlatform::initVtable(void* lib) {
     vtr.replace("_ZNK19AppPlatform_android16getBuildPlatformEv", &LauncherAppPlatform::getBuildPlatform);
     vtr.replace("_ZNK19AppPlatform_android17getPlatformStringEv", &LauncherAppPlatform::getPlatformString);
     vtr.replace("_ZNK19AppPlatform_android20getSubPlatformStringEv", &LauncherAppPlatform::getSubPlatformString);
+    vtr.replace("_ZN19AppPlatform_android31calculateAvailableDiskFreeSpaceERKN4Core4PathE", &LauncherAppPlatform::calculateAvailableDiskFreeSpace);
     vtr.replace("_ZN19AppPlatform_android31calculateAvailableDiskFreeSpaceERKSs", &LauncherAppPlatform::calculateAvailableDiskFreeSpace);
     vtr.replace("_ZNK19AppPlatform_android25getPlatformUIScalingRulesEv", &LauncherAppPlatform::getPlatformUIScalingRules);
     vtr.replace("_ZN19AppPlatform_android19getPlatformTempPathEv", &LauncherAppPlatform::getPlatformTempPath);
+    vtr.replace("_ZNK19AppPlatform_android19getPlatformTempPathEv", &LauncherAppPlatform::getPlatformTempPath);
     vtr.replace("_ZN19AppPlatform_android14createDeviceIDEv", &LauncherAppPlatform::createDeviceID_old);
     vtr.replace("_ZN19AppPlatform_android14createDeviceIDERSs", &LauncherAppPlatform::createDeviceID);
     vtr.replace("_ZN19AppPlatform_android18queueForMainThreadESt8functionIFvvEE", &LauncherAppPlatform::queueForMainThread);

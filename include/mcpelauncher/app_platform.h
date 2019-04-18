@@ -12,6 +12,7 @@
 #include "patch_utils.h"
 #include <minecraft/gl.h>
 #include <minecraft/AppPlatform.h>
+#include <minecraft/Core.h>
 #include <minecraft/std/function.h>
 
 class ImageData;
@@ -94,7 +95,16 @@ public:
         // Log::trace(TAG, "getUserdataPathForLevels: %s", userdataPathForLevels.c_str());
         return userdataPathForLevels;
     }
-    mcpe::string getAssetFileFullPath(mcpe::string const& s) {
+    mcpe::string getAssetFileFullPath(Core::Path const& s) {
+        // Log::trace(TAG, "getAssetFileFullPath: %s", s.c_str());
+        std::string ret = assetsDir;
+        if (s.size != (size_t) -1)
+            ret.append(s.path, s.path + s.size);
+        else
+            ret.append(s.path);
+        return mcpe::string(ret);
+    }
+    mcpe::string getAssetFileFullPathOld(mcpe::string const& s) {
         // Log::trace(TAG, "getAssetFileFullPath: %s", s.c_str());
         return mcpe::string(assetsDir + s.std());
     }
