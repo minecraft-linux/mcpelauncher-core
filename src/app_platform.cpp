@@ -63,7 +63,8 @@ void LauncherAppPlatform::initVtable(void* lib) {
     vtr.replace("_ZN19AppPlatform_android25getGraphicsTearingSupportEv", &LauncherAppPlatform::getGraphicsTearingSupport);
     vtr.replace("_ZN19AppPlatform_android9pickImageESt10shared_ptrI20ImagePickingCallbackE", &LauncherAppPlatform::pickImage);
     vtr.replace("_ZN19AppPlatform_android9pickImageER20ImagePickingCallback", &LauncherAppPlatform::pickImageOld);
-    vtr.replace("_ZN11AppPlatform8pickFileER18FilePickerSettings", &LauncherAppPlatform::pickFile);
+    vtr.replace("_ZN19AppPlatform_android8pickFileESt10shared_ptrI18FilePickerSettingsE", &LauncherAppPlatform::pickFile);
+    vtr.replace("_ZN11AppPlatform8pickFileER18FilePickerSettings", &LauncherAppPlatform::pickFileOld);
     vtr.replace("_ZNK11AppPlatform19supportsFilePickingEv", &LauncherAppPlatform::supportsFilePicking);
     vtr.replace("_ZN19AppPlatform_android22getExternalStoragePathEv", &LauncherAppPlatform::getExternalStoragePath);
     vtr.replace("_ZNK19AppPlatform_android22getExternalStoragePathEv", &LauncherAppPlatform::getExternalStoragePath);
@@ -108,6 +109,7 @@ void LauncherAppPlatform::initVtable(void* lib) {
     vtr.replace("_ZNK11AppPlatform17supportsScriptingEv", &LauncherAppPlatform::supportsScripting);
     vtr.replace("_ZNK19AppPlatform_android17supportsScriptingEv", &LauncherAppPlatform::supportsScripting);
     vtr.replace("_ZN19AppPlatform_android21getBroadcastAddressesEv", &LauncherAppPlatform::getBroadcastAddresses);
+    vtr.replace("_ZNK11AppPlatform16supports3DExportEv", &LauncherAppPlatform::supports3DExport);
 
     vtr.replace("_ZN19AppPlatform_android35getMultiplayerServiceListToRegisterEv", hybris_dlsym(lib, "_ZN19AppPlatform_android35getMultiplayerServiceListToRegisterEv"));
     vtr.replace("_ZN19AppPlatform_android36getBroadcastingMultiplayerServiceIdsEbb", hybris_dlsym(lib, "_ZN19AppPlatform_android36getBroadcastingMultiplayerServiceIdsEbb"));

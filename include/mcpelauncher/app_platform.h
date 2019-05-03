@@ -14,6 +14,8 @@
 #include <minecraft/AppPlatform.h>
 #include <minecraft/Core.h>
 #include <minecraft/std/function.h>
+#include <minecraft/std/shared_ptr.h>
+#include <minecraft/legacy/FilePickerSettings.h>
 
 class ImageData;
 class ImagePickingCallback;
@@ -71,9 +73,10 @@ public:
         return false;
     }
 
-    void pickImage(std::shared_ptr<ImagePickingCallback>) {}
+    void pickImage(mcpe::shared_ptr<ImagePickingCallback>) {}
     void pickImageOld(ImagePickingCallback& callback) {}
-    void pickFile(FilePickerSettings& callback) {}
+    void pickFile(mcpe::shared_ptr<FilePickerSettings> callback) {}
+    void pickFileOld(Legacy::Pre_1_8::FilePickerSettings& callback) {}
     bool supportsFilePicking() { return false; }
     mcpe::string& getExternalStoragePath() {
         // Log::trace(TAG, "getExternalStoragePath: %s", externalStorage.c_str());
@@ -191,6 +194,10 @@ public:
     void calculateHardwareTier();
 
     bool supportsScripting() {
+        return true;
+    }
+
+    bool supports3DExport() {
         return true;
     }
 
