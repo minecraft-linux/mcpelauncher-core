@@ -201,6 +201,10 @@ public:
         return true;
     }
 
+    bool getPlatformTTSEnabled() {
+        return false;
+    }
+
     std::vector<mcpe::string> getBroadcastAddresses();
 
 };
