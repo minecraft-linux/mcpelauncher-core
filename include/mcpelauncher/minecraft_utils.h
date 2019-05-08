@@ -29,4 +29,6 @@ public:
 
     static void workaroundShutdownCrash(void* handle);
 
+    static void setupGLES2Symbols(void* (*resolver)(const char*));
+
 };

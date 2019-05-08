@@ -7,6 +7,7 @@
 #include <minecraft/imported/egl_symbols.h>
 #include <minecraft/imported/libm_symbols.h>
 #include <minecraft/imported/fmod_symbols.h>
+#include <minecraft/imported/glesv2_symbols.h>
 #include <minecraft/symbols.h>
 #include <minecraft/std/string.h>
 #include <log.h>
@@ -155,6 +156,17 @@ unsigned int MinecraftUtils::getLibraryBase(void *handle) {
 void MinecraftUtils::initSymbolBindings(void* handle) {
     mcpe::string::empty = (mcpe::string*) hybris_dlsym(handle, "_ZN4Util12EMPTY_STRINGE");
     minecraft_symbols_init(handle);
+}
+
+void MinecraftUtils::setupGLES2Symbols(void* (*resolver)(const char *)) {
+    int i = 0;
+    while (true) {
+        const char* sym = glesv2_symbols[i];
+        if (sym == nullptr)
+            break;
+        hybris_hook(sym, resolver(sym));
+        i++;
+    }
 }
 
 static void workerPoolDestroy(void* th) {
