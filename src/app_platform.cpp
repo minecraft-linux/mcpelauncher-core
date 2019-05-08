@@ -12,6 +12,7 @@
 #include <arpa/inet.h>
 #include <net/if.h>
 #include <minecraft/Crypto.h>
+#include <minecraft/legacy/UUID.h>
 
 #ifdef __APPLE__
 #include <stdint.h>
@@ -20,6 +21,8 @@
 #include <mach/mach_host.h>
 #else
 #include <sys/sysinfo.h>
+#include <mcpelauncher/minecraft_version.h>
+
 #endif
 
 const char* LauncherAppPlatform::TAG = "AppPlatform";
@@ -111,6 +114,7 @@ void LauncherAppPlatform::initVtable(void* lib) {
     vtr.replace("_ZN19AppPlatform_android21getBroadcastAddressesEv", &LauncherAppPlatform::getBroadcastAddresses);
     vtr.replace("_ZNK11AppPlatform16supports3DExportEv", &LauncherAppPlatform::supports3DExport);
     vtr.replace("_ZNK19AppPlatform_android21getPlatformTTSEnabledEv", &LauncherAppPlatform::getPlatformTTSEnabled);
+    vtr.replace("_ZN19AppPlatform_android10createUUIDEv", &LauncherAppPlatform::createUUID);
 
     vtr.replace("_ZN19AppPlatform_android35getMultiplayerServiceListToRegisterEv", hybris_dlsym(lib, "_ZN19AppPlatform_android35getMultiplayerServiceListToRegisterEv"));
     vtr.replace("_ZN19AppPlatform_android36getBroadcastingMultiplayerServiceIdsEbb", hybris_dlsym(lib, "_ZN19AppPlatform_android36getBroadcastingMultiplayerServiceIdsEbb"));
@@ -241,4 +245,11 @@ mcpe::string LauncherAppPlatform::createDeviceID(mcpe::string &error) {
     }
     Log::trace(TAG, "createDeviceID (created new): %s", deviceId.c_str());
     return deviceId;
+}
+
+mcpe::string LauncherAppPlatform::createUUID() {
+    auto uuid = Crypto::Random::generateUUID();
+    if (!MinecraftVersion::isAtLeast(0, 16))
+        return ((Legacy::Pre_1_0_4::mce::UUID*) &uuid)->toString();
+    return uuid.asString();
 }

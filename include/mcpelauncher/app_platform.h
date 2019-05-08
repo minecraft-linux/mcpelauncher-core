@@ -174,6 +174,8 @@ public:
 
     mcpe::string createDeviceID(mcpe::string& error);
 
+    mcpe::string createUUID();
+
     bool allowSplitScreen() {
         return true;
     }
