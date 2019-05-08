@@ -10,6 +10,7 @@
 #include <minecraft/symbols.h>
 #include <minecraft/std/string.h>
 #include <log.h>
+#include <FileUtil.h>
 #include <hybris/dlfcn.h>
 #include <hybris/hook.h>
 #include <stdexcept>
@@ -125,6 +126,12 @@ void MinecraftUtils::setupHookApi() {
 }
 
 void* MinecraftUtils::loadMinecraftLib(std::string const& path) {
+    // load gnustl_shared.so for <0.15.90.8
+    std::string gnustlPath = FileUtil::getParent(path) + "/libgnustl_shared.so";
+    if (FileUtil::exists(gnustlPath)) {
+        hybris_dlopen(gnustlPath.c_str(), RTLD_LAZY);
+    }
+
     void* handle = hybris_dlopen(path.c_str(), RTLD_LAZY);
     if (handle == nullptr)
         throw std::runtime_error(std::string("Failed to load Minecraft: ") + hybris_dlerror());
