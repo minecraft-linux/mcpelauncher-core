@@ -88,6 +88,7 @@ void MinecraftUtils::setupHybris() {
     if (!load_empty_library("libmcpelauncher_mod.so"))
         throw std::runtime_error("Failed to load stub libraries");
     load_empty_library("libstdc++.so");
+    load_empty_library("libz.so"); // needed for <0.17
 }
 
 void MinecraftUtils::setupHookApi() {
