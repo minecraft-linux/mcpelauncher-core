@@ -8,6 +8,7 @@
 #include <minecraft/imported/libm_symbols.h>
 #include <minecraft/imported/fmod_symbols.h>
 #include <minecraft/imported/glesv2_symbols.h>
+#include <minecraft/imported/libz_symbols.h>
 #include <minecraft/symbols.h>
 #include <minecraft/std/string.h>
 #include <log.h>
@@ -71,6 +72,7 @@ void MinecraftUtils::setupHybris() {
     HybrisUtils::stubSymbols(egl_symbols, (void*) (void (*)()) []() {
         Log::warn("Launcher", "EGL stub called");
     });
+    HybrisUtils::loadLibraryOS("libz.so.1", libz_symbols);
     HybrisUtils::hookAndroidLog();
     setupHookApi();
     hybris_hook("mcpelauncher_log", (void*) Log::log);
