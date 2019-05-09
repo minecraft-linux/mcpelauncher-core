@@ -13,6 +13,9 @@
 #include <net/if.h>
 #include <minecraft/Crypto.h>
 #include <minecraft/legacy/UUID.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/stat.h>
 
 #ifdef __APPLE__
 #include <stdint.h>
@@ -118,6 +121,9 @@ void LauncherAppPlatform::initVtable(void* lib) {
 
     vtr.replace("_ZN19AppPlatform_android35getMultiplayerServiceListToRegisterEv", hybris_dlsym(lib, "_ZN19AppPlatform_android35getMultiplayerServiceListToRegisterEv"));
     vtr.replace("_ZN19AppPlatform_android36getBroadcastingMultiplayerServiceIdsEbb", hybris_dlsym(lib, "_ZN19AppPlatform_android36getBroadcastingMultiplayerServiceIdsEbb"));
+
+    if (!MinecraftVersion::isAtLeast(0, 16))
+        vtr.replace("_ZN19AppPlatform_android13readAssetFileERKSs", &LauncherAppPlatform::readAssetFile_pre_0_16);
 }
 
 long long LauncherAppPlatform::calculateAvailableDiskFreeSpace() {
@@ -252,4 +258,39 @@ mcpe::string LauncherAppPlatform::createUUID() {
     if (!MinecraftVersion::isAtLeast(0, 16))
         return ((Legacy::Pre_1_0_4::mce::UUID*) &uuid)->toString();
     return uuid.asString();
+}
+
+mcpe::string LauncherAppPlatform::readAssetFile_pre_0_16(mcpe::string const& path) {
+    // the function reimplements readAssetFile; this is required because MCPE tries to open directories, which crashes
+    int fd = open(path.c_str(), O_RDONLY);
+    if (fd < 0) {
+        Log::error("LauncherAppPlatform", "readAssetFile: not found: %s", path.c_str());
+        return mcpe::string();
+    }
+    struct stat sr;
+    if (fstat(fd, &sr) < 0 || (sr.st_mode & S_IFDIR)) {
+        close(fd);
+        Log::error("LauncherAppPlatform", "readAssetFile: opening a directory: %s", path.c_str());
+        return mcpe::string();
+    }
+    auto size = lseek(fd, 0, SEEK_END);
+    if (size == (off_t) -1) {
+        Log::error("LauncherAppPlatform", "readAssetFile: lseek error");
+        close(fd);
+        return mcpe::string();
+    }
+    mcpe::string ret;
+    ret.resize((std::size_t) size);
+    lseek(fd, 0, SEEK_SET);
+    for (size_t o = 0; o < size; ) {
+        int res = read(fd, (char*) &ret.c_str()[o], size - o);
+        if (res < 0) {
+            Log::error("LauncherAppPlatform", "readAssetFile: read error");
+            close(fd);
+            return mcpe::string();
+        }
+        o += res;
+    }
+    close(fd);
+    return ret;
 }

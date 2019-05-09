@@ -209,4 +209,6 @@ public:
 
     std::vector<mcpe::string> getBroadcastAddresses();
 
+    mcpe::string readAssetFile_pre_0_16(mcpe::string const& path);
+
 };
