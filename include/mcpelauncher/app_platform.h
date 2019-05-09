@@ -211,4 +211,30 @@ public:
 
     mcpe::string readAssetFile_pre_0_16(mcpe::string const& path);
 
+    mcpe::string readAssetFile_pre_0_15(mcpe::string const& path) {
+        return readAssetFile_pre_0_16(assetsDir + path.std());
+    }
+
+    mcpe::string getImagePath_pre_0_15(mcpe::string const& s, int loc) {
+        if (loc == 0)
+            return assetsDir + "images/" + s.std();
+        else
+            return assetsDir + s.std();
+    }
+    mcpe::string getImagePath_pre_0_14_2(mcpe::string const& s, bool b) {
+        return getImagePath_pre_0_15(s, b ? 0 : 1);
+    }
+    mcpe::string getGraphicsVendor_pre_0_15() {
+        return gl::getOpenGLVendor();
+    }
+    mcpe::string getGraphicsRenderer_pre_0_15() {
+        return gl::getOpenGLRenderer();
+    }
+    mcpe::string getGraphicsVersion_pre_0_15() {
+        return gl::getOpenGLVersion();
+    }
+    mcpe::string getGraphicsExtensions_pre_0_15() {
+        return gl::getOpenGLExtensions();
+    }
+
 };

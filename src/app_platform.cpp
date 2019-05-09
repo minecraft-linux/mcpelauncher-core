@@ -16,6 +16,8 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <mcpelauncher/minecraft_version.h>
+#include <random>
 
 #ifdef __APPLE__
 #include <stdint.h>
@@ -24,8 +26,6 @@
 #include <mach/mach_host.h>
 #else
 #include <sys/sysinfo.h>
-#include <mcpelauncher/minecraft_version.h>
-
 #endif
 
 const char* LauncherAppPlatform::TAG = "AppPlatform";
@@ -55,7 +55,7 @@ void LauncherAppPlatform::initVtable(void* lib) {
 
     myVtable = (void**) ::operator new((myVtableSize + 1) * sizeof(void*));
     myVtable[myVtableSize] = nullptr;
-    memcpy(&myVtable[0], &vt[2], (myVtableSize - 2) * sizeof(void*));
+    memcpy(&myVtable[0], &vt[2], myVtableSize * sizeof(void*));
 
     PatchUtils::VtableReplaceHelper vtr (lib, myVtable, vta);
     vtr.replace("_ZNK19AppPlatform_android10getDataUrlEv", &LauncherAppPlatform::getDataUrl);
@@ -118,12 +118,26 @@ void LauncherAppPlatform::initVtable(void* lib) {
     vtr.replace("_ZNK11AppPlatform16supports3DExportEv", &LauncherAppPlatform::supports3DExport);
     vtr.replace("_ZNK19AppPlatform_android21getPlatformTTSEnabledEv", &LauncherAppPlatform::getPlatformTTSEnabled);
     vtr.replace("_ZN19AppPlatform_android10createUUIDEv", &LauncherAppPlatform::createUUID);
+    vtr.replace("_ZNK11AppPlatform10getEditionEv", &LauncherAppPlatform::getEdition);
 
     vtr.replace("_ZN19AppPlatform_android35getMultiplayerServiceListToRegisterEv", hybris_dlsym(lib, "_ZN19AppPlatform_android35getMultiplayerServiceListToRegisterEv"));
     vtr.replace("_ZN19AppPlatform_android36getBroadcastingMultiplayerServiceIdsEbb", hybris_dlsym(lib, "_ZN19AppPlatform_android36getBroadcastingMultiplayerServiceIdsEbb"));
 
     if (!MinecraftVersion::isAtLeast(0, 16))
         vtr.replace("_ZN19AppPlatform_android13readAssetFileERKSs", &LauncherAppPlatform::readAssetFile_pre_0_16);
+
+    // < 0.15
+    if (!MinecraftVersion::isAtLeast(0, 14, 99))
+        vtr.replace("_ZN19AppPlatform_android13readAssetFileERKSs", &LauncherAppPlatform::readAssetFile_pre_0_15);
+    vtr.replace("_ZN19AppPlatform_android12getImagePathERKSs15TextureLocation", &LauncherAppPlatform::getImagePath_pre_0_15);
+    vtr.replace("_ZNK19AppPlatform_android13getScreenTypeEv", &LauncherAppPlatform::getScreenType);
+    vtr.replace("_ZN19AppPlatform_android17getGraphicsVendorEv", &LauncherAppPlatform::getGraphicsVendor_pre_0_15);
+    vtr.replace("_ZN19AppPlatform_android19getGraphicsRendererEv", &LauncherAppPlatform::getGraphicsRenderer_pre_0_15);
+    vtr.replace("_ZN19AppPlatform_android18getGraphicsVersionEv", &LauncherAppPlatform::getGraphicsVersion_pre_0_15);
+    vtr.replace("_ZN19AppPlatform_android21getGraphicsExtensionsEv", &LauncherAppPlatform::getGraphicsExtensions_pre_0_15);
+
+    // < 0.14.2
+    vtr.replace("_ZN19AppPlatform_android12getImagePathERKSsb", &LauncherAppPlatform::getImagePath_pre_0_14_2);
 }
 
 long long LauncherAppPlatform::calculateAvailableDiskFreeSpace() {
@@ -254,6 +268,20 @@ mcpe::string LauncherAppPlatform::createDeviceID(mcpe::string &error) {
 }
 
 mcpe::string LauncherAppPlatform::createUUID() {
+    if (!MinecraftVersion::isAtLeast(0, 14, 99)) {
+        static std::independent_bits_engine<std::random_device, CHAR_BIT, unsigned char> engine;
+        unsigned char rawBytes[16];
+        std::generate(rawBytes, rawBytes + 16, std::ref(engine));
+        rawBytes[6] = (rawBytes[6] & (unsigned char) 0x0F) | (unsigned char) 0x40;
+        rawBytes[8] = (rawBytes[6] & (unsigned char) 0x3F) | (unsigned char) 0x80;
+        mcpe::string ret;
+        ret.resize(36);
+        snprintf((char*) ret.c_str(), 36, "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x",
+                rawBytes[0], rawBytes[1], rawBytes[2], rawBytes[3],
+                rawBytes[4], rawBytes[5], rawBytes[6], rawBytes[7], rawBytes[8], rawBytes[9],
+                rawBytes[10], rawBytes[11], rawBytes[12], rawBytes[13], rawBytes[14], rawBytes[15]);
+        return ret;
+    }
     auto uuid = Crypto::Random::generateUUID();
     if (!MinecraftVersion::isAtLeast(0, 16))
         return ((Legacy::Pre_1_0_4::mce::UUID*) &uuid)->toString();
