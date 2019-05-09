@@ -16,8 +16,8 @@
 #include <minecraft/std/function.h>
 #include <minecraft/std/shared_ptr.h>
 #include <minecraft/legacy/FilePickerSettings.h>
+#include <minecraft/legacy/ImageData.h>
 
-class ImageData;
 class ImagePickingCallback;
 class FilePickerSettings;
 class GameWindow;
@@ -236,5 +236,7 @@ public:
     mcpe::string getGraphicsExtensions_pre_0_15() {
         return gl::getOpenGLExtensions();
     }
+
+    void loadPNG_pre_0_14(Legacy::Pre_0_14::ImageData& imgData, mcpe::string const& path, bool b);
 
 };

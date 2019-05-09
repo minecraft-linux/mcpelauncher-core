@@ -18,6 +18,9 @@
 #include <sys/stat.h>
 #include <mcpelauncher/minecraft_version.h>
 #include <random>
+#ifdef HAS_LIBPNG
+#include <png.h>
+#endif
 
 #ifdef __APPLE__
 #include <stdint.h>
@@ -138,6 +141,9 @@ void LauncherAppPlatform::initVtable(void* lib) {
 
     // < 0.14.2
     vtr.replace("_ZN19AppPlatform_android12getImagePathERKSsb", &LauncherAppPlatform::getImagePath_pre_0_14_2);
+
+    // < 0.14
+    vtr.replace("_ZN19AppPlatform_android7loadPNGER9ImageDataRKSsb", &LauncherAppPlatform::loadPNG_pre_0_14);
 }
 
 long long LauncherAppPlatform::calculateAvailableDiskFreeSpace() {
@@ -321,4 +327,74 @@ mcpe::string LauncherAppPlatform::readAssetFile_pre_0_16(mcpe::string const& pat
     }
     close(fd);
     return ret;
+}
+
+void LauncherAppPlatform::loadPNG_pre_0_14(Legacy::Pre_0_14::ImageData &imgData, mcpe::string const &path, bool b) {
+#ifdef HAS_LIBPNG
+    FILE* file = fopen(path.c_str(), "rb");
+    if (file == nullptr) {
+        Log::error("LauncherAppPlatform", "loadPNG: failed to open file %s", path.c_str());
+        return;
+    }
+
+    png_structp png = nullptr;
+    png_infop info = nullptr;
+    png = png_create_read_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
+    if (setjmp(png_jmpbuf(png))) {
+        Log::error("LauncherAppPlatform", "loadPNG: failed to read png");
+        png_destroy_read_struct(&png, &info, nullptr);
+        fclose(file);
+        return;
+    }
+
+    if (!png) {
+        Log::error("LauncherAppPlatform", "loadPNG: png alloc failed");
+        longjmp(png_jmpbuf(png), 1);
+    }
+    info = png_create_info_struct(png);
+    if (!info) {
+        Log::error("LauncherAppPlatform", "loadPNG: png info struct alloc failed");
+        longjmp(png_jmpbuf(png), 1);
+    }
+
+    png_init_io(png, file);
+
+    png_read_info(png, info);
+
+    imgData.w = (int) png_get_image_width(png, info);
+    imgData.h = (int) png_get_image_height(png, info);
+    imgData.format = Legacy::Pre_0_14::TextureFormat::U8888;
+    imgData.mipLevel = 0;
+
+    png_byte bitDepth = png_get_bit_depth(png, info);
+    png_byte colorType = png_get_color_type(png, info);
+    if (colorType == PNG_COLOR_TYPE_PALETTE)
+        png_set_palette_to_rgb(png);
+    if (colorType == PNG_COLOR_TYPE_RGB) {
+        if (png_get_valid(png, info, PNG_INFO_tRNS))
+            png_set_tRNS_to_alpha(png);
+        else
+            png_set_filler(png, 0xff, PNG_FILLER_AFTER);
+    }
+    if (colorType == PNG_COLOR_TYPE_GRAY && bitDepth < 8)
+        png_set_expand_gray_1_2_4_to_8(png);
+    if (bitDepth == 16)
+        png_set_strip_16(png);
+    png_read_update_info(png, info);
+
+    png_size_t rowBytes = png_get_rowbytes(png, info);
+
+    imgData.data.resize(rowBytes * imgData.h);
+
+    png_byte* rows[imgData.h];
+    for (int i = 0; i < imgData.h; i++) {
+        rows[i] = (png_byte*) &(imgData.data.c_str())[i * rowBytes];
+    }
+    png_read_image(png, rows);
+
+    fclose(file);
+    png_destroy_read_struct(&png, &info, nullptr);
+#else
+    Log::error("LauncherAppPlatform", "loadPNG: stubbed due to no libpng support at compile time");
+#endif
 }
