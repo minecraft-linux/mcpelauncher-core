@@ -20,4 +20,6 @@ endif()
 
 if (PNG_FOUND)
     target_compile_definitions(mcpelauncher-core PRIVATE HAS_LIBPNG)
+    target_include_directories(mcpelauncher-core PRIVATE ${PNG_INCLUDE_DIRS})
+    target_link_libraries(mcpelauncher-core ${PNG_LIBRARIES})
 endif()
