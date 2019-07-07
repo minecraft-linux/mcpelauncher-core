@@ -17,6 +17,7 @@
 #include <minecraft/std/shared_ptr.h>
 #include <minecraft/legacy/FilePickerSettings.h>
 #include <minecraft/legacy/ImageData.h>
+#include <minecraft/legacy/Core.h>
 
 class ImagePickingCallback;
 class FilePickerSettings;
@@ -99,6 +100,15 @@ public:
         return userdataPathForLevels;
     }
     mcpe::string getAssetFileFullPath(Core::Path const& s) {
+        // Log::trace(TAG, "getAssetFileFullPath: %s", s.c_str());
+        std::string ret = assetsDir;
+        if (s.hasSize)
+            ret.append(s.path, s.path + s.size);
+        else
+            ret.append(s.path);
+        return mcpe::string(ret);
+    }
+    mcpe::string getAssetFileFullPath_pre_1_13(Legacy::Pre_1_13::Core::Path const& s) {
         // Log::trace(TAG, "getAssetFileFullPath: %s", s.c_str());
         std::string ret = assetsDir;
         if (s.size != (size_t) -1)

@@ -126,6 +126,9 @@ void LauncherAppPlatform::initVtable(void* lib) {
     vtr.replace("_ZN19AppPlatform_android35getMultiplayerServiceListToRegisterEv", hybris_dlsym(lib, "_ZN19AppPlatform_android35getMultiplayerServiceListToRegisterEv"));
     vtr.replace("_ZN19AppPlatform_android36getBroadcastingMultiplayerServiceIdsEbb", hybris_dlsym(lib, "_ZN19AppPlatform_android36getBroadcastingMultiplayerServiceIdsEbb"));
 
+    if (!MinecraftVersion::isAtLeast(1, 13))
+        vtr.replace("_ZN11AppPlatform20getAssetFileFullPathERKN4Core4PathE", &LauncherAppPlatform::getAssetFileFullPath_pre_1_13);
+
     if (!MinecraftVersion::isAtLeast(0, 16))
         vtr.replace("_ZN19AppPlatform_android13readAssetFileERKSs", &LauncherAppPlatform::readAssetFile_pre_0_16);
 
