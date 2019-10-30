@@ -1,27 +1,27 @@
 #pragma once
 
-#include <minecraft/SharedConstants.h>
-#include <minecraft/legacy/SharedConstants.h>
+#include <minecraft/symbols.h>
 
 class MinecraftVersion {
 
-private:
-    static inline int Revision() {
-        return *(SharedConstants::RevisionVersion != nullptr ?
-            SharedConstants::RevisionVersion : Legacy::Pre_0_17::SharedConstants::BetaVersion);
-    }
-
 public:
+    static int major;
+    static int minor;
+    static int patch;
+    static int revision;
+
+    static void init();
+
     static bool isAtLeast(int major, int minor, int patch = -1, int revision = -1) {
-        return *SharedConstants::MajorVersion > major || (*SharedConstants::MajorVersion == major &&
-            (*SharedConstants::MinorVersion > minor || (*SharedConstants::MinorVersion == minor &&
-            (*SharedConstants::PatchVersion > patch || (*SharedConstants::PatchVersion == patch &&
-            Revision() >= revision)))));
+        return MinecraftVersion::major > major || (MinecraftVersion::major == major &&
+            (MinecraftVersion::minor > minor || (MinecraftVersion::minor == minor &&
+            (MinecraftVersion::patch > patch || (MinecraftVersion::patch == patch &&
+            MinecraftVersion::revision >= revision)))));
     }
 
     static bool isExactly(int major, int minor, int patch, int revision) {
-        return *SharedConstants::MajorVersion == major && *SharedConstants::MinorVersion == minor &&
-                Revision() == revision && *SharedConstants::PatchVersion == patch;
+        return MinecraftVersion::major == major && MinecraftVersion::minor == minor &&
+                MinecraftVersion::revision == revision && MinecraftVersion::patch == patch;
     }
 
 };

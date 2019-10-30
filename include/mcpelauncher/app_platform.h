@@ -219,6 +219,14 @@ public:
 
     std::vector<mcpe::string> getBroadcastAddresses();
 
+    mcpe::string systemLocale = "en";
+
+    mcpe::string const &getSystemLocale() {
+        return systemLocale;
+    }
+
+    mcpe::string readAssetFile(Core::Path const &p);
+
     mcpe::string readAssetFile_pre_0_16(mcpe::string const& path);
 
     mcpe::string readAssetFile_pre_0_15(mcpe::string const& path) {

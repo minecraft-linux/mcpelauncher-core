@@ -3,6 +3,7 @@
 #include <mcpelauncher/hybris_utils.h>
 #include <mcpelauncher/hook.h>
 #include <mcpelauncher/path_helper.h>
+#include <mcpelauncher/minecraft_version.h>
 #include <minecraft/imported/android_symbols.h>
 #include <minecraft/imported/egl_symbols.h>
 #include <minecraft/imported/libm_symbols.h>
@@ -158,6 +159,7 @@ unsigned int MinecraftUtils::getLibraryBase(void *handle) {
 void MinecraftUtils::initSymbolBindings(void* handle) {
     mcpe::string::empty = (mcpe::string*) hybris_dlsym(handle, "_ZN4Util12EMPTY_STRINGE");
     minecraft_symbols_init(handle);
+    MinecraftVersion::init();
 }
 
 void MinecraftUtils::setupGLES2Symbols(void* (*resolver)(const char *)) {
