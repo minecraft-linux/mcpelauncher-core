@@ -101,6 +101,10 @@ public:
     }
     mcpe::string getAssetFileFullPath(Core::Path const& s) {
         // Log::trace(TAG, "getAssetFileFullPath: %s", s.c_str());
+        return assetsDir + s.path.std();
+    }
+    mcpe::string getAssetFileFullPath_pre_1_14(Legacy::Pre_1_14::Core::Path const& s) {
+        // Log::trace(TAG, "getAssetFileFullPath: %s", s.c_str());
         std::string ret = assetsDir;
         if (s.hasSize)
             ret.append(s.path, s.path + s.size);
@@ -225,12 +229,22 @@ public:
         return systemLocale;
     }
 
-    mcpe::string readAssetFile(Core::Path const &p);
+    mcpe::string readAssetFileImpl(const char *p);
 
-    mcpe::string readAssetFile_pre_0_16(mcpe::string const& path);
+    mcpe::string readAssetFile(Core::Path const &p) {
+        return readAssetFileImpl(p.path.c_str());
+    }
+
+    mcpe::string readAssetFile_pre_1_14(Legacy::Pre_1_14::Core::Path const &p) {
+        return readAssetFileImpl(p.path);
+    }
+
+    mcpe::string readAssetFile_pre_0_16(mcpe::string const& path) {
+        return readAssetFileImpl(path.c_str());
+    }
 
     mcpe::string readAssetFile_pre_0_15(mcpe::string const& path) {
-        return readAssetFile_pre_0_16(assetsDir + path.std());
+        return readAssetFileImpl((assetsDir + path.std()).c_str());
     }
 
     mcpe::string getImagePath_pre_0_15(mcpe::string const& s, int loc) {

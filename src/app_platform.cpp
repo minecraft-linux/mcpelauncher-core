@@ -129,11 +129,15 @@ void LauncherAppPlatform::initVtable(void* lib) {
     vtr.replace("_ZN19AppPlatform_android35getMultiplayerServiceListToRegisterEv", hybris_dlsym(lib, "_ZN19AppPlatform_android35getMultiplayerServiceListToRegisterEv"));
     vtr.replace("_ZN19AppPlatform_android36getBroadcastingMultiplayerServiceIdsEbb", hybris_dlsym(lib, "_ZN19AppPlatform_android36getBroadcastingMultiplayerServiceIdsEbb"));
 
+    if (!MinecraftVersion::isAtLeast(1, 14))
+        vtr.replace("_ZN11AppPlatform20getAssetFileFullPathERKN4Core4PathE", &LauncherAppPlatform::getAssetFileFullPath_pre_1_14);
     if (!MinecraftVersion::isAtLeast(1, 13))
         vtr.replace("_ZN11AppPlatform20getAssetFileFullPathERKN4Core4PathE", &LauncherAppPlatform::getAssetFileFullPath_pre_1_13);
 
     if (MinecraftVersion::isAtLeast(1, 13, 0, 9))
         vtr.replace("_ZN19AppPlatform_android13readAssetFileERKN4Core4PathE", &LauncherAppPlatform::readAssetFile);
+    if (!MinecraftVersion::isAtLeast(1, 14))
+        vtr.replace("_ZN19AppPlatform_android13readAssetFileERKN4Core4PathE", &LauncherAppPlatform::readAssetFile_pre_1_14);
     if (!MinecraftVersion::isAtLeast(0, 16))
         vtr.replace("_ZN19AppPlatform_android13readAssetFileERKSs", &LauncherAppPlatform::readAssetFile_pre_0_16);
 
@@ -302,17 +306,17 @@ mcpe::string LauncherAppPlatform::createUUID() {
     return uuid.asString();
 }
 
-mcpe::string LauncherAppPlatform::readAssetFile(Core::Path const &p) {
+mcpe::string LauncherAppPlatform::readAssetFileImpl(const char *p) {
     // the function reimplements readAssetFile; this is required because MCPE tries to open directories, which crashes
-    int fd = open(p.path, O_RDONLY);
+    int fd = open(p, O_RDONLY);
     if (fd < 0) {
-        Log::error("LauncherAppPlatform", "readAssetFile: not found: %s", p.path);
+        Log::error("LauncherAppPlatform", "readAssetFile: not found: %s", p);
         return mcpe::string();
     }
     struct stat sr;
     if (fstat(fd, &sr) < 0 || (sr.st_mode & S_IFDIR)) {
         close(fd);
-        Log::error("LauncherAppPlatform", "readAssetFile: opening a directory: %s", p.path);
+        Log::error("LauncherAppPlatform", "readAssetFile: opening a directory: %s", p);
         return mcpe::string();
     }
     auto size = lseek(fd, 0, SEEK_END);
@@ -335,10 +339,6 @@ mcpe::string LauncherAppPlatform::readAssetFile(Core::Path const &p) {
     }
     close(fd);
     return ret;
-}
-
-mcpe::string LauncherAppPlatform::readAssetFile_pre_0_16(mcpe::string const& path) {
-    return readAssetFile({path.c_str(), true, path.length()});
 }
 
 void LauncherAppPlatform::loadPNG_pre_0_14(Legacy::Pre_0_14::ImageData &imgData, mcpe::string const &path, bool b) {
