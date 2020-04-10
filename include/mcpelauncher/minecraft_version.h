@@ -1,6 +1,6 @@
 #pragma once
 
-#include <minecraft/symbols.h>
+#include <string>
 
 class MinecraftVersion {
 
@@ -23,5 +23,7 @@ public:
         return MinecraftVersion::major == major && MinecraftVersion::minor == minor &&
                 MinecraftVersion::revision == revision && MinecraftVersion::patch == patch;
     }
+
+    static std::string getString();
 
 };

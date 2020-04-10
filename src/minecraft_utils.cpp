@@ -10,13 +10,12 @@
 #include <minecraft/imported/fmod_symbols.h>
 #include <minecraft/imported/glesv2_symbols.h>
 #include <minecraft/imported/libz_symbols.h>
-#include <minecraft/symbols.h>
-#include <minecraft/std/string.h>
 #include <log.h>
 #include <FileUtil.h>
 #include <hybris/dlfcn.h>
 #include <hybris/hook.h>
 #include <stdexcept>
+#include <cstring>
 
 extern "C" {
 #include <hybris/jb/linker.h>
@@ -154,12 +153,6 @@ void MinecraftUtils::setupForHeadless() {
 
 unsigned int MinecraftUtils::getLibraryBase(void *handle) {
     return ((soinfo*) handle)->base;
-}
-
-void MinecraftUtils::initSymbolBindings(void* handle) {
-    mcpe::string::empty = (mcpe::string*) hybris_dlsym(handle, "_ZN4Util12EMPTY_STRINGE");
-    minecraft_symbols_init(handle);
-    MinecraftVersion::init();
 }
 
 void MinecraftUtils::setupGLES2Symbols(void* (*resolver)(const char *)) {
