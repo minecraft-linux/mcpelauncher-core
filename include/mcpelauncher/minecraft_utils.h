@@ -25,8 +25,6 @@ public:
 
     static unsigned int getLibraryBase(void* handle);
 
-    static void workaroundShutdownCrash(void* handle);
-
     static void setupGLES2Symbols(void* (*resolver)(const char*));
 
 };
