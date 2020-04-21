@@ -2,6 +2,7 @@
 
 #include <log.h>
 #include <cstring>
+#include <climits>
 #include <stdexcept>
 #include <mcpelauncher/linker.h>
 
@@ -28,8 +29,11 @@ void PatchUtils::patchCallInstruction(void* patchOff, void* func, bool jump) {
 #else
     Log::trace(TAG, "Patching - original: %i %i %i %i %i", data[0], data[1], data[2], data[3], data[4]);
     data[0] = (unsigned char) (jump ? 0xe9 : 0xe8);
-    int ptr = ((int) func) - (int) patchOff - 5;
-    memcpy(&data[1], &ptr, sizeof(int));
+    intptr_t ptr = (((intptr_t) func) - (intptr_t) patchOff - 5);
+    if (ptr > INT_MAX || ptr < INT_MIN)
+        throw std::runtime_error("patchCallInstruction: out of range");
+    int iptr = ptr;
+    memcpy(&data[1], &iptr, sizeof(int));
     Log::trace(TAG, "Patching - result: %i %i %i %i %i", data[0], data[1], data[2], data[3], data[4]);
 #endif
 }
