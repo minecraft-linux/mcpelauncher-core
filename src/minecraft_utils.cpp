@@ -123,7 +123,7 @@ void MinecraftUtils::setupApi() {
 void* MinecraftUtils::loadMinecraftLib(std::string const& path) {
     // load gnustl_shared.so for <0.15.90.8
     std::string gnustlPath = FileUtil::getParent(path) + "/libgnustl_shared.so";
-    if (FileUtil::exists(gnustlPath)) {
+    if (FileUtil::exists(gnustlPath))
         linker::dlopen(gnustlPath.c_str(), 0);
 
     // load libc++_shared.so for 64-bit
