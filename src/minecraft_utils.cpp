@@ -125,7 +125,11 @@ void* MinecraftUtils::loadMinecraftLib(std::string const& path) {
     std::string gnustlPath = FileUtil::getParent(path) + "/libgnustl_shared.so";
     if (FileUtil::exists(gnustlPath)) {
         linker::dlopen(gnustlPath.c_str(), 0);
-    }
+
+    // load libc++_shared.so for 64-bit
+    std::string cxxSharedPath = FileUtil::getParent(path) + "/libc++_shared.so";
+    if (FileUtil::exists(cxxSharedPath))
+        linker::dlopen(cxxSharedPath.c_str(), 0);
 
     void* handle = linker::dlopen(path.c_str(), 0);
     if (handle == nullptr)
@@ -134,7 +138,7 @@ void* MinecraftUtils::loadMinecraftLib(std::string const& path) {
     return handle;
 }
 
-unsigned int MinecraftUtils::getLibraryBase(void *handle) {
+size_t MinecraftUtils::getLibraryBase(void *handle) {
     return linker::get_library_base(handle);
 }
 

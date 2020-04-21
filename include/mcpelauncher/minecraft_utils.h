@@ -20,7 +20,7 @@ public:
     static void* loadFMod();
     static void stubFMod();
 
-    static unsigned int getLibraryBase(void* handle);
+    static size_t getLibraryBase(void* handle);
 
     static void setupGLES2Symbols(void* (*resolver)(const char*));
 
