@@ -1,10 +1,6 @@
 #include <mcpelauncher/hybris_utils.h>
+#include <mcpelauncher/linker.h>
 #include <log.h>
-
-extern "C" {
-#include <hybris/hook.h>
-}
-
 
 enum class AndroidLogPriority {
     ANDROID_LOG_UNKNOWN = 0,
@@ -45,7 +41,9 @@ static void __android_log_write(int prio, const char *tag, const char *text) {
 }
 
 void HybrisUtils::hookAndroidLog() {
-    hybris_hook("__android_log_print", (void*) __android_log_print);
-    hybris_hook("__android_log_vprint", (void*) __android_log_vprint);
-    hybris_hook("__android_log_write", (void*) __android_log_write);
+    linker::load_library("liblog.so", {
+        {"__android_log_print", (void*) __android_log_print},
+        {"__android_log_vprint", (void*) __android_log_vprint},
+        {"__android_log_write", (void*) __android_log_write},
+    });
 }

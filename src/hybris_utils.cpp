@@ -1,22 +1,22 @@
 #include <mcpelauncher/hybris_utils.h>
 #include <mcpelauncher/path_helper.h>
 #include <log.h>
-#include <hybris/hook.h>
-#include <hybris/dlfcn.h>
+#include <dlfcn.h>
+#include <mcpelauncher/linker.h>
 
 const char* HybrisUtils::TAG = "HybrisUtils";
 
 
 bool HybrisUtils::loadLibrary(std::string path) {
-    void* handle = hybris_dlopen(PathHelper::findDataFile("libs/hybris/" + path).c_str(), RTLD_LAZY);
+    void* handle = linker::dlopen(PathHelper::findDataFile("libs/hybris/" + path).c_str(), 0);
     if (handle == nullptr) {
-        Log::error(TAG, "Failed to load hybris library %s: %s", path.c_str(), hybris_dlerror());
+        Log::error(TAG, "Failed to load hybris library %s: %s", path.c_str(), linker::dlerror());
         return false;
     }
     return true;
 }
 
-void* HybrisUtils::loadLibraryOS(std::string path, const char** symbols) {
+void* HybrisUtils::loadLibraryOS(const char *name, std::string const &path, const char** symbols) {
     void* handle = dlopen(path.c_str(), RTLD_LAZY);
     if (handle == nullptr) {
         Log::error(TAG, "Failed to load OS library %s", path.c_str());
@@ -24,24 +24,28 @@ void* HybrisUtils::loadLibraryOS(std::string path, const char** symbols) {
     }
     Log::trace(TAG, "Loaded OS library %s", path.c_str());
     int i = 0;
+    std::unordered_map<std::string, void*> syms;
     while (true) {
         const char* sym = symbols[i];
         if (sym == nullptr)
             break;
         void* ptr = dlsym(handle, sym);
-        hybris_hook(sym, ptr);
+        syms[sym] = ptr;
         i++;
     }
+    linker::load_library(name, syms);
     return handle;
 }
 
-void HybrisUtils::stubSymbols(const char** symbols, void* stubfunc) {
+void HybrisUtils::stubSymbols(const char *name, const char** symbols, void* stubfunc) {
     int i = 0;
+    std::unordered_map<std::string, void*> syms;
     while (true) {
         const char* sym = symbols[i];
         if (sym == nullptr)
             break;
-        hybris_hook(sym, stubfunc);
+        syms[sym] = stubfunc;
         i++;
     }
+    linker::load_library(name, syms);
 }

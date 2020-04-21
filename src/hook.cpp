@@ -7,20 +7,15 @@
 #include <elf.h>
 #include <sys/mman.h>
 #include <log.h>
-#include <hybris/dlfcn.h>
+#include <mcpelauncher/linker.h>
 
 #define TAG "HookManager"
-
-extern "C" {
-#include <hybris/jb/linker.h>
-unsigned elfhash(const char *);
-};
 
 HookManager HookManager::instance;
 
 HookManager::LibInfo::LibInfo(void *handle) : handle(handle) {
-    this->base = (void*) ((soinfo*) handle)->base;
-
+    this->base = (void*) linker::get_library_base(handle);
+/*
     Elf32_Dyn* dynData = (Elf32_Dyn *) ((soinfo*) handle)->dynamic;
 
     for (int i = 0; ; i++) {
@@ -58,7 +53,7 @@ HookManager::LibInfo::LibInfo(void *handle) : handle(handle) {
             relro = (void*) ((size_t) base + entry.p_vaddr);
             relrosize = entry.p_memsz;
         }
-    }
+    }*/
 }
 
 const char* HookManager::LibInfo::getSymbolName(Elf32_Word symbolIndex) {
@@ -130,7 +125,7 @@ void HookManager::addLibrary(void *handle) {
     if (libs.count(handle) > 0)
         return;
     auto& p = libs[handle] = std::unique_ptr<LibInfo>(new LibInfo(handle));
-
+/*
     Elf32_Dyn* dynData = (Elf32_Dyn *) ((soinfo*) handle)->dynamic;
 
     for (int i = 0; ; i++) {
@@ -144,7 +139,7 @@ void HookManager::addLibrary(void *handle) {
             dependents[dep].push_back(p.get());
             hybris_dlclose(dep);
         }
-    }
+    }*/
 }
 
 void HookManager::removeLibrary(void *handle) {
@@ -229,12 +224,13 @@ void HookManager::applyHooks() {
 }
 
 Elf32_Word HookManager::getSymbolIndex(void *lib, const char *symbolName) {
+    /*
     auto slib = (soinfo*) lib;
     unsigned int hash = elfhash(symbolName) % slib->nbucket;
     for (Elf32_Word index = slib->bucket[hash]; index != 0; index = slib->chain[index]) {
         if (strcmp(&slib->strtab[slib->symtab[index].st_name], symbolName) == 0)
             return index;
-    }
+    }*/
     return (Elf32_Word) -1;
 }
 

@@ -6,7 +6,7 @@
 #include <csignal>
 #include <cxxabi.h>
 #include <execinfo.h>
-#include <hybris/dlfcn.h>
+#include <mcpelauncher/linker.h>
 
 
 bool CrashHandler::hasCrashed = false;
@@ -38,7 +38,7 @@ void CrashHandler::handleSignal(int signal, void *aptr) {
         }
         if (symbols[i][0] == '[') { // unknown symbol
             Dl_info symInfo;
-            if (hybris_dladdr(array[i], &symInfo)) {
+            if (linker::dladdr(array[i], &symInfo)) {
                 int status = 0;
                 nameBuf = abi::__cxa_demangle(symInfo.dli_sname, nameBuf, &nameBufLen, &status);
                 printf("#%i HYBRIS %s+%i in %s+0x%04x [0x%04x]\n", i, nameBuf, (unsigned int) array[i] - (unsigned int) symInfo.dli_saddr, symInfo.dli_fname, (unsigned int) array[i] - (unsigned int) symInfo.dli_fbase, (int)array[i]);
@@ -51,7 +51,7 @@ void CrashHandler::handleSignal(int signal, void *aptr) {
     for (int i = 0; i < 1000; i++) {
         void* pptr = *ptr;
         Dl_info symInfo;
-        if (hybris_dladdr(pptr, &symInfo)) {
+        if (linker::dladdr(pptr, &symInfo)) {
             int status = 0;
             nameBuf = abi::__cxa_demangle(symInfo.dli_sname, nameBuf, &nameBufLen, &status);
             printf("#%i HYBRIS %s+%i in %s+0x%04x [0x%04x]\n", i, nameBuf, (unsigned int) pptr - (unsigned int) symInfo.dli_saddr, symInfo.dli_fname, (unsigned int) pptr - (unsigned int) symInfo.dli_fbase, (int)pptr);

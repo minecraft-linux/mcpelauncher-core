@@ -1,21 +1,21 @@
 #include <mcpelauncher/mod_loader.h>
 #include <log.h>
-#include <hybris/dlfcn.h>
+#include <mcpelauncher/linker.h>
 #include <dirent.h>
 #include <elf.h>
 #include <queue>
 #include <mcpelauncher/hook.h>
 
 void* ModLoader::loadMod(std::string const& path) {
-    void* handle = hybris_dlopen(path.c_str(), RTLD_LAZY);
+    void* handle = linker::dlopen(path.c_str(), 0);
     if (handle == nullptr) {
-        Log::error("ModLoader", "Failed to load mod %s: %s", path.c_str(), hybris_dlerror());
+        Log::error("ModLoader", "Failed to load mod %s: %s", path.c_str(), linker::dlerror());
         return nullptr;
     }
     HookManager::instance.addLibrary(handle);
 
     void (*initFunc)();
-    initFunc = (void (*)()) hybris_dlsym(handle, "mod_init");
+    initFunc = (void (*)()) linker::dlsym(handle, "mod_init");
     if (((void*) initFunc) == nullptr) {
         Log::warn("ModLoader", "Mod %s does not have an init function", path.c_str());
         return handle;
@@ -76,7 +76,7 @@ void ModLoader::onGameInitialized(MinecraftGame* game) {
         return;
     Log::info("ModLoader", "Initializing mods");
     for (void* mod : mods) {
-        void (*initFunc)(MinecraftGame*) = (void (*)(MinecraftGame*)) hybris_dlsym(mod, "mod_set_minecraft");
+        void (*initFunc)(MinecraftGame*) = (void (*)(MinecraftGame*)) linker::dlsym(mod, "mod_set_minecraft");
         if ((void*) initFunc != nullptr)
             initFunc(game);
     }
@@ -87,7 +87,7 @@ void ModLoader::onServerInstanceInitialized(ServerInstance* server) {
         return;
     Log::info("ModLoader", "Initializing mods");
     for (void* mod : mods) {
-        void (*initFunc)(ServerInstance*) = (void (*)(ServerInstance*)) hybris_dlsym(mod, "mod_set_server");
+        void (*initFunc)(ServerInstance*) = (void (*)(ServerInstance*)) linker::dlsym(mod, "mod_set_server");
         if ((void*) initFunc != nullptr)
             initFunc(server);
     }

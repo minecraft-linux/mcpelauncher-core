@@ -2,8 +2,8 @@
 
 #include <log.h>
 #include <cstring>
-#include <hybris/dlfcn.h>
 #include <stdexcept>
+#include <mcpelauncher/linker.h>
 
 const char* PatchUtils::TAG = "Patch";
 
@@ -35,7 +35,7 @@ void PatchUtils::patchCallInstruction(void* patchOff, void* func, bool jump) {
 }
 
 void PatchUtils::VtableReplaceHelper::replace(const char* name, void* replacement) {
-    replace(hybris_dlsym(lib, name), replacement);
+    replace(linker::dlsym(lib, name), replacement);
 }
 
 void PatchUtils::VtableReplaceHelper::replace(void* sym, void* replacement) {

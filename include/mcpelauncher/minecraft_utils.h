@@ -5,14 +5,13 @@
 class MinecraftUtils {
 
 private:
+    static void* loadLibC();
     static void* loadLibM();
 
-    static void setupHookApi();
+    static void setupApi();
 
 public:
     static void workaroundLocaleBug();
-
-    static void setMallocZero();
 
     static void setupHybris();
 
@@ -20,8 +19,6 @@ public:
 
     static void* loadFMod();
     static void stubFMod();
-
-    static void setupForHeadless();
 
     static unsigned int getLibraryBase(void* handle);
 
