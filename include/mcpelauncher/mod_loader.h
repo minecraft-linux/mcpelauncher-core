@@ -21,8 +21,4 @@ public:
 
     void loadModsFromDirectory(std::string const& path);
 
-    void onGameInitialized(MinecraftGame* game);
-
-    void onServerInstanceInitialized(ServerInstance* server);
-
 };

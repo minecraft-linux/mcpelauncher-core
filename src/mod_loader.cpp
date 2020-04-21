@@ -71,28 +71,6 @@ void ModLoader::loadModsFromDirectory(std::string const& path) {
     HookManager::instance.applyHooks();
 }
 
-void ModLoader::onGameInitialized(MinecraftGame* game) {
-    if (mods.empty())
-        return;
-    Log::info("ModLoader", "Initializing mods");
-    for (void* mod : mods) {
-        void (*initFunc)(MinecraftGame*) = (void (*)(MinecraftGame*)) linker::dlsym(mod, "mod_set_minecraft");
-        if ((void*) initFunc != nullptr)
-            initFunc(game);
-    }
-}
-
-void ModLoader::onServerInstanceInitialized(ServerInstance* server) {
-    if (mods.empty())
-        return;
-    Log::info("ModLoader", "Initializing mods");
-    for (void* mod : mods) {
-        void (*initFunc)(ServerInstance*) = (void (*)(ServerInstance*)) linker::dlsym(mod, "mod_set_server");
-        if ((void*) initFunc != nullptr)
-            initFunc(server);
-    }
-}
-
 std::vector<std::string> ModLoader::getModDependencies(std::string const& path) {
     Elf32_Ehdr header;
     FILE* file = fopen(path.c_str(), "r");
