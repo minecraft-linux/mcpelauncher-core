@@ -8,6 +8,37 @@
 
 const char* PatchUtils::TAG = "Patch";
 
+void *PatchUtils::patternSearch(void *handle, const char *pattern) {
+    std::vector<unsigned char> patternRaw;
+    std::vector<unsigned char> patternMask;
+    while (pattern[0] && pattern[1]) {
+        if (*pattern == ' ') {
+            ++pattern;
+            continue;
+        }
+        if (pattern[0] == '?' && pattern[1] == '?') {
+            patternRaw.push_back(0);
+            patternMask.push_back(0);
+        } else {
+            patternRaw.push_back((char) std::strtoul(pattern, nullptr, 16));
+            patternMask.push_back(0xFF);
+        }
+        pattern += 2;
+    }
+
+    size_t base, size;
+    linker::get_library_code_region(handle, base, size);
+    for (size_t i = size - patternRaw.size(); i > 0; --i) {
+        for (size_t j = 0; j < patternRaw.size(); j++) {
+            if (patternRaw[j] != (((unsigned char *) base)[i + j] & patternMask[j]))
+                goto skip;
+        }
+        return &((char*) base)[i];
+        skip: ;
+    }
+    return nullptr;
+}
+
 void PatchUtils::patchCallInstruction(void* patchOff, void* func, bool jump) {
     unsigned char* data = (unsigned char*) patchOff;
 #ifdef __arm__

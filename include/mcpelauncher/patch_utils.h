@@ -35,6 +35,8 @@ public:
 
     };
 
+    static void *patternSearch(void *handle, const char *pattern);
+
     static void patchCallInstruction(void* patchOff, void* func, bool jump);
 
     static size_t getVtableSize(void** vtable);
