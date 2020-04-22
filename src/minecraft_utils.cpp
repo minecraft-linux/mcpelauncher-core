@@ -21,11 +21,11 @@ void MinecraftUtils::workaroundLocaleBug() {
     setenv("LC_ALL", "C", 1); // HACK: Force set locale to one recognized by MCPE so that the outdated C++ standard library MCPE uses doesn't fail to find one
 }
 
-void* MinecraftUtils::loadLibC() {
+std::unordered_map<std::string, void*> MinecraftUtils::getLibCSymbols() {
     std::unordered_map<std::string, void*> syms;
     for (auto const &s : shim::get_shimmed_symbols())
         syms[s.name] = s.value;
-    return linker::load_library("libc.so", syms);
+    return syms;
 }
 
 void* MinecraftUtils::loadLibM() {
@@ -58,23 +58,9 @@ void MinecraftUtils::stubFMod() {
 }
 
 void MinecraftUtils::setupHybris() {
-    linker::init();
-
-#ifndef USE_BIONIC_LIBC
-    loadLibC();
-    loadLibM();
-#endif
     HybrisUtils::loadLibraryOS("libz.so", "libz.so.1", libz_symbols);
     HybrisUtils::hookAndroidLog();
     setupApi();
-    // load stub libraries
-#ifdef USE_BIONIC_LIBC
-    if (!load_empty_library("ld-android.so") ||
-        !hybris_dlopen(PathHelper::findDataFile("libs/hybris/libc.so").c_str(), 0) ||
-        !hybris_dlopen(PathHelper::findDataFile("libs/hybris/libm.so").c_str(), 0))
-        throw std::runtime_error("Failed to load Android libc.so/libm.so libraries");
-#else
-#endif
     linker::load_library("libOpenSLES.so", {});
     linker::load_library("libGLESv1_CM++.so", {});
 

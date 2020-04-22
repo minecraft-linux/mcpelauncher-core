@@ -5,13 +5,13 @@
 class MinecraftUtils {
 
 private:
-    static void* loadLibC();
-    static void* loadLibM();
-
     static void setupApi();
 
 public:
     static void workaroundLocaleBug();
+
+    static std::unordered_map<std::string, void*> getLibCSymbols();
+    static void* loadLibM();
 
     static void setupHybris();
 
