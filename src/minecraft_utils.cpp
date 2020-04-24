@@ -43,7 +43,13 @@ void* MinecraftUtils::loadFMod() {
 #ifdef __APPLE__
     void* fmodLib = HybrisUtils::loadLibraryOS("libfmod.so", PathHelper::findDataFile("libs/native/libfmod.dylib"), fmod_symbols);
 #else
-    void* fmodLib = HybrisUtils::loadLibraryOS("libfmod.so", PathHelper::findDataFile(std::string("lib/native/") + getLibraryAbi() + "/libfmod.so.10.20"), fmod_symbols);
+    void* fmodLib = HybrisUtils::loadLibraryOS("libfmod.so", PathHelper::findDataFile(std::string("lib/native/") + getLibraryAbi() + 
+#ifdef __LP64__
+"/libfmod.so.12.0"
+#else
+"/libfmod.so.10.20"
+#endif
+), fmod_symbols);
 #endif
     if (fmodLib == nullptr)
         throw std::runtime_error("Failed to load fmod");
