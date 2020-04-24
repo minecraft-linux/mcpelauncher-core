@@ -1,6 +1,7 @@
 #pragma once
 
 #include <mcpelauncher/path_helper.h>
+#include <unordered_map>
 
 class MinecraftUtils {
 
