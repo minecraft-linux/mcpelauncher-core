@@ -112,18 +112,8 @@ void MinecraftUtils::setupApi() {
     linker::load_library("libmcpelauncher_mod.so", syms);
 }
 
-void* MinecraftUtils::loadMinecraftLib(std::string const& path) {
-    // load gnustl_shared.so for <0.15.90.8
-    std::string gnustlPath = FileUtil::getParent(path) + "/libgnustl_shared.so";
-    if (FileUtil::exists(gnustlPath))
-        linker::dlopen(gnustlPath.c_str(), 0);
-
-    // load libc++_shared.so for 64-bit
-    std::string cxxSharedPath = FileUtil::getParent(path) + "/libc++_shared.so";
-    if (FileUtil::exists(cxxSharedPath))
-        linker::dlopen(cxxSharedPath.c_str(), 0);
-
-    void* handle = linker::dlopen(path.c_str(), 0);
+void* MinecraftUtils::loadMinecraftLib() {
+    void* handle = linker::dlopen("libminecraftpe.so", 0);
     if (handle == nullptr)
         throw std::runtime_error(std::string("Failed to load Minecraft: ") + linker::dlerror());
     HookManager::instance.addLibrary(handle);
