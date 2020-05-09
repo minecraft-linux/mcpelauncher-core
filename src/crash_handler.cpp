@@ -62,11 +62,39 @@ void CrashHandler::handleSignal(int signal, void *aptr) {
     abort();
 }
 
-void CrashHandler::registerCrashHandler() {
+#if defined(__x86_64__) && defined(__APPLE__)
+void CrashHandler::handle_fs_fault(int sig, void *si, void *ucp) {
+  ucontext_t *uc = (ucontext_t*)ucp;
+  unsigned char *p = (unsigned char *)uc->uc_mcontext->__ss.__rip;
+  if (p && *p == 0x64) {
+    *p = 0x65;
+  } else if (p && *p == 0x65) {
+  } else {
+    // Not a %fs fault, attach normal crash handler to sigsegv
     struct sigaction act;
     act.sa_handler = (void (*)(int)) handleSignal;
     sigemptyset(&act.sa_mask);
     act.sa_flags = 0;
     sigaction(SIGSEGV, &act, 0);
+  }
+}
+#endif
+
+void CrashHandler::registerCrashHandler() {
+    struct sigaction act;
+    act.sa_handler = (void (*)(int)) handleSignal;
+    sigemptyset(&act.sa_mask);
+    act.sa_flags = 0;
+#if defined(__x86_64__) && defined(__APPLE__)
+    {
+        struct sigaction act;
+        act.sa_sigaction = (void (*)(int, __siginfo *, void *)) handle_fs_fault;
+        sigemptyset(&act.sa_mask);
+        act.sa_flags = SA_SIGINFO;
+        sigaction(SIGSEGV, &act, 0);
+    }
+#else
+    sigaction(SIGSEGV, &act, 0);
+#endif
     sigaction(SIGABRT, &act, 0);
 }
