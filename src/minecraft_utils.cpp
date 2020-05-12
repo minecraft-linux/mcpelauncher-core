@@ -64,7 +64,13 @@ void MinecraftUtils::stubFMod() {
 }
 
 void MinecraftUtils::setupHybris() {
-    HybrisUtils::loadLibraryOS("libz.so", "libz.so.1", libz_symbols);
+    HybrisUtils::loadLibraryOS("libz.so", 
+#ifdef __APPLE__
+    "libz.dylib"
+#else
+    "libz.so.1"
+#endif
+    , libz_symbols);
     HybrisUtils::hookAndroidLog();
     setupApi();
     linker::load_library("libOpenSLES.so", {});
