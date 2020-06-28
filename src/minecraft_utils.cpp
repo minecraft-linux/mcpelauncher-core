@@ -120,9 +120,11 @@ void MinecraftUtils::setupApi() {
 
 void* MinecraftUtils::loadMinecraftLib() {
     void* handle = linker::dlopen("libminecraftpe.so", 0);
-    if (handle == nullptr)
-        throw std::runtime_error(std::string("Failed to load Minecraft: ") + linker::dlerror());
-    HookManager::instance.addLibrary(handle);
+    if (handle == nullptr) {
+        Log::error("Failed to load Minecraft: %s", linker::dlerror());
+    } else {
+        HookManager::instance.addLibrary(handle);
+    }
     return handle;
 }
 const char *MinecraftUtils::getLibraryAbi() {
