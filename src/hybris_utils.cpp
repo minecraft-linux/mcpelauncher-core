@@ -16,7 +16,7 @@ bool HybrisUtils::loadLibrary(std::string path) {
     return true;
 }
 
-void* HybrisUtils::loadLibraryOS(const char *name, std::string const &path, const char** symbols) {
+void* HybrisUtils::loadLibraryOS(const char *name, std::string const &path, const char** symbols, std::unordered_map<std::string, void*> syms) {
     void* handle = dlopen(path.c_str(), RTLD_LAZY);
     if (handle == nullptr) {
         Log::error(TAG, "Failed to load OS library %s", path.c_str());
@@ -24,13 +24,13 @@ void* HybrisUtils::loadLibraryOS(const char *name, std::string const &path, cons
     }
     Log::trace(TAG, "Loaded OS library %s", path.c_str());
     int i = 0;
-    std::unordered_map<std::string, void*> syms;
     while (true) {
         const char* sym = symbols[i];
         if (sym == nullptr)
             break;
         void* ptr = dlsym(handle, sym);
-        syms[sym] = ptr;
+        if (ptr)
+            syms[sym] = ptr;
         i++;
     }
     linker::load_library(name, syms);

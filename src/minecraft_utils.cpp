@@ -30,7 +30,7 @@ std::unordered_map<std::string, void*> MinecraftUtils::getLibCSymbols() {
 
 void* MinecraftUtils::loadLibM() {
 #ifdef __APPLE__
-    void* libmLib = HybrisUtils::loadLibraryOS("libm.so", "libm.dylib", libm_symbols);
+    void* libmLib = HybrisUtils::loadLibraryOS("libm.so", "libm.dylib", libm_symbols, std::unordered_map<std::string, void*>{ {std::string("sincos"), (void*)__sincos }, {std::string("sincosf"), (void*)__sincosf } });
 #else
     void* libmLib = HybrisUtils::loadLibraryOS("libm.so", "libm.so.6", libm_symbols);
 #endif
