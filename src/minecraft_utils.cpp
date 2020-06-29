@@ -121,7 +121,7 @@ void MinecraftUtils::setupApi() {
 void* MinecraftUtils::loadMinecraftLib() {
     void* handle = linker::dlopen("libminecraftpe.so", 0);
     if (handle == nullptr) {
-        Log::error("Failed to load Minecraft: %s", linker::dlerror());
+        Log::error("MinecraftUtils", "Failed to load Minecraft: %s", linker::dlerror());
     } else {
         HookManager::instance.addLibrary(handle);
     }
