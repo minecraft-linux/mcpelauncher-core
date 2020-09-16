@@ -119,6 +119,8 @@ void MinecraftUtils::setupApi() {
 }
 
 void* MinecraftUtils::loadMinecraftLib() {
+    linker::dlopen("libc++_shared.so", 0);
+
     void* handle = linker::dlopen("libminecraftpe.so", 0);
     if (handle == nullptr) {
         Log::error("MinecraftUtils", "Failed to load Minecraft: %s", linker::dlerror());
