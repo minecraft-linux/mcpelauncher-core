@@ -40,21 +40,21 @@ void* MinecraftUtils::loadLibM() {
 }
 
 void* MinecraftUtils::loadFMod() {
-    void* fmodLib = HybrisUtils::loadLibraryOS("libfmod.so", PathHelper::findDataFile(std::string("lib/native/") + getLibraryAbi() + 
+    void* fmodLib = HybrisUtils::loadLibraryOS("libfmod.so", PathHelper::findDataFile(std::string("lib/native/") +
 #ifdef __APPLE__
 #if defined(__i386__)
     // Minecraft releases (linked) with libc++-shared have to use a newer version of libfmod
     // Apple have multi arch libs so this should work.
-    (linker::dlopen("libc++_shared.so", 0) ? "/../x86_64/libfmod.dylib" : "/libfmod.dylib")
+    (linker::dlopen("libc++_shared.so", 0) ? std::string("x86_64/libfmod.dylib") : (std::string(getLibraryAbi()) + "/libfmod.dylib"))
 #else
-"/libfmod.dylib"
+    getLibraryAbi() + "/libfmod.dylib"
 #endif
 #else
 #ifdef __LP64__
-"/libfmod.so.12.0"
+    getLibraryAbi() + "/libfmod.so.12.0"
 #else
     // Minecraft releases (linked) with libc++-shared have to use a newer version of libfmod
-    (linker::dlopen("libc++_shared.so", 0) ? "/libfmod.so.12.0" : "/libfmod.so.10.20")
+    getLibraryAbi() + (linker::dlopen("libc++_shared.so", 0) ? "/libfmod.so.12.0" : "/libfmod.so.10.20")
 #endif
 #endif
 ), fmod_symbols);
