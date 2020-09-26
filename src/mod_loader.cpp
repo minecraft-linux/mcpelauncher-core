@@ -5,9 +5,19 @@
 #include <elf.h>
 #include <queue>
 #include <mcpelauncher/hook.h>
+#include <mcpelauncher/minecraft_utils.h>
 
 void* ModLoader::loadMod(std::string const& path) {
-    void* handle = linker::dlopen(path.c_str(), 0);
+    android_dlextinfo extinfo = { 0 };
+    auto api = MinecraftUtils::getApi();
+    std::vector<mcpelauncher_hook_t> hooks;
+    for (auto && entry : api) {
+        hooks.emplace_back(mcpelauncher_hook_t{ entry.first.data(), entry.second });
+    }
+    hooks.emplace_back(mcpelauncher_hook_t{ nullptr, nullptr });
+    extinfo.flags = ANDROID_DLEXT_MCPELAUNCHER_HOOKS;
+    extinfo.mcpelauncher_hooks = hooks.data();
+    void* handle = linker::dlopen_ext(path.c_str(), 0, &extinfo);
     if (handle == nullptr) {
         Log::error("ModLoader", "Failed to load mod %s: %s", path.c_str(), linker::dlerror());
         return nullptr;
