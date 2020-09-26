@@ -6,7 +6,16 @@
 #include <unordered_map>
 #include <memory>
 #include <elf.h>
-#include <link.h>
+#ifndef __BEGIN_DECLS
+#define __BEGIN_DECLS extern "C" {
+#endif
+#ifndef __END_DECLS
+#define __END_DECLS }
+#endif
+#ifndef __INTRODUCED_IN
+#define __INTRODUCED_IN(...)
+#endif
+#include "../../../mcpelauncher-linker/include/link.h"
 
 class HookManager {
 
