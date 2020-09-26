@@ -72,13 +72,13 @@ void ModLoader::loadModsFromDirectory(std::string const& path) {
 }
 
 std::vector<std::string> ModLoader::getModDependencies(std::string const& path) {
-    Elf32_Ehdr header;
+    ElfW(Ehdr) header;
     FILE* file = fopen(path.c_str(), "r");
     if (file == nullptr) {
         Log::error("ModLoader", "getModDependencies: failed to open mod");
         return {};
     }
-    if (fread(&header, sizeof(Elf32_Ehdr), 1, file) != 1) {
+    if (fread(&header, sizeof(ElfW(Ehdr)), 1, file) != 1) {
         Log::error("ModLoader", "getModDependencies: failed to read header");
         fclose(file);
         return {};
@@ -94,9 +94,9 @@ std::vector<std::string> ModLoader::getModDependencies(std::string const& path) 
     }
 
     // find dynamic
-    Elf32_Phdr* dynamicEntry = nullptr;
+    ElfW(Phdr)* dynamicEntry = nullptr;
     for (int i = 0; i < header.e_phnum; i++) {
-        Elf32_Phdr& entry = *((Elf32_Phdr*) &phdr[header.e_phentsize * i]);
+        ElfW(Phdr)& entry = *((ElfW(Phdr)*) &phdr[header.e_phentsize * i]);
         if (entry.p_type == PT_DYNAMIC)
             dynamicEntry = &entry;
     }
@@ -105,10 +105,10 @@ std::vector<std::string> ModLoader::getModDependencies(std::string const& path) 
         fclose(file);
         return {};
     }
-    size_t dynamicDataCount = dynamicEntry->p_filesz / sizeof(Elf32_Dyn);
-    Elf32_Dyn dynamicData[dynamicDataCount];
+    size_t dynamicDataCount = dynamicEntry->p_filesz / sizeof(ElfW(Dyn));
+    ElfW(Dyn) dynamicData[dynamicDataCount];
     fseek(file, (long) dynamicEntry->p_offset, SEEK_SET);
-    if (fread(dynamicData, sizeof(Elf32_Dyn), dynamicDataCount, file) != dynamicDataCount) {
+    if (fread(dynamicData, sizeof(ElfW(Dyn)), dynamicDataCount, file) != dynamicDataCount) {
         Log::error("ModLoader", "getModDependencies: failed to read PT_DYNAMIC");
         fclose(file);
         return {};

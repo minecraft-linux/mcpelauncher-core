@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <memory>
 #include <elf.h>
+#include <link.h>
 
 class HookManager {
 
@@ -26,7 +27,7 @@ public:
 private:
     struct LibSymbolPair {
         LibInfo* lib;
-        Elf32_Word symbolIndex;
+        ElfW(Word) symbolIndex;
 
         bool operator==(LibSymbolPair const& o) const {
             return lib == o.lib && symbolIndex == o.symbolIndex;
@@ -39,7 +40,7 @@ private:
     };
     struct HookedSymbol {
         LibInfo* lib;
-        Elf32_Word symbolIndex;
+        ElfW(Word) symbolIndex;
 
         void* original = nullptr;
         HookInstance* firstHook = nullptr;
@@ -54,27 +55,27 @@ private:
         void* base;
 
         const char* strtab = nullptr;
-        Elf32_Sym* symtab = nullptr;
-        Elf32_Rel* rel = nullptr;
-        Elf32_Word relsz = 0;
-        Elf32_Rel* pltrel = nullptr;
-        Elf32_Word pltrelsz = 0;
+        ElfW(Sym)* symtab = nullptr;
+        ElfW(Rel)* rel = nullptr;
+        ElfW(Word) relsz = 0;
+        ElfW(Rel)* pltrel = nullptr;
+        ElfW(Word) pltrelsz = 0;
         void* relro = nullptr;
-        Elf32_Word relrosize = 0;
+        ElfW(Word) relrosize = 0;
 
-        std::unordered_map<Elf32_Word, std::shared_ptr<HookedSymbol>> hookedSymbols;
+        std::unordered_map<ElfW(Word), std::shared_ptr<HookedSymbol>> hookedSymbols;
 
         std::vector<void*> dependencies;
 
         LibInfo(void* handle);
 
 
-        void applyHooks(Elf32_Rel* rel, Elf32_Word relsz);
+        void applyHooks(ElfW(Rel)* rel, ElfW(Word) relsz);
 
     public:
-        const char* getSymbolName(Elf32_Word symbolIndex);
+        const char* getSymbolName(ElfW(Word) symbolIndex);
 
-        void setHook(Elf32_Word symbolIndex, std::shared_ptr<HookedSymbol> hook);
+        void setHook(ElfW(Word) symbolIndex, std::shared_ptr<HookedSymbol> hook);
 
         void setHook(const char* symbolName, std::shared_ptr<HookedSymbol> hook);
 
@@ -86,9 +87,9 @@ private:
     std::unordered_map<void*, std::vector<LibInfo*>> dependents;
     std::unordered_map<LibSymbolPair, std::shared_ptr<HookedSymbol>, LibSymbolPairHash> hookedSymbols;
 
-    HookedSymbol* getOrCreateHookSymbol(void* lib, Elf32_Word symbolIndex);
+    HookedSymbol* getOrCreateHookSymbol(void* lib, ElfW(Word) symbolIndex);
 
-    static Elf32_Word getSymbolIndex(void* lib, const char* symbolName);
+    static ElfW(Word) getSymbolIndex(void* lib, const char* symbolName);
 
 public:
     static HookManager instance;
@@ -97,7 +98,7 @@ public:
 
     void removeLibrary(void* handle);
 
-    HookInstance* createHook(void* lib, Elf32_Word symbolIndex, void* replacement, void** orig);
+    HookInstance* createHook(void* lib, ElfW(Word) symbolIndex, void* replacement, void** orig);
 
     HookInstance* createHook(void* lib, const char* symbolName, void* replacement, void** orig);
 
