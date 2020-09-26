@@ -47,11 +47,11 @@ void* MinecraftUtils::loadFMod() {
     // Apple have multi arch libs so this should work.
     (linker::dlopen("libc++_shared.so", 0) ? std::string("x86_64/libfmod.dylib") : (std::string(getLibraryAbi()) + "/libfmod.dylib"))
 #else
-"/libfmod.dylib"
+    getLibraryAbi() + "/libfmod.dylib"
 #endif
 #else
 #ifdef __LP64__
-"/libfmod.so.12.0"
+    getLibraryAbi() + "/libfmod.so.12.0"
 #else
     // Minecraft releases (linked) with libc++-shared have to use a newer version of libfmod
     getLibraryAbi() + (linker::dlopen("libc++_shared.so", 0) ? "/libfmod.so.12.0" : "/libfmod.so.10.20")
