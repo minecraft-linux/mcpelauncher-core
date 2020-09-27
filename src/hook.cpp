@@ -75,12 +75,17 @@ void HookManager::LibInfo::setHook(
     hookedSymbols[symbolIndex] = hook;
 }
 
+#if defined(USE_RELA)
+typedef ElfW(Rela) mcpelauncher_elf_rel;
+#else
+typedef ElfW(Rel) mcpelauncher_elf_rel;
+#endif
 
 void HookManager::LibInfo::applyHooks(ElfW(Rel)* rel, ElfW(Word) relsz) {
-    for (size_t i = 0; i < relsz / sizeof(ElfW(Rel)); i++) {
-        ElfW(Word) type = ELFW(R_TYPE)(rel[i].r_info);
-        ElfW(Word) sym = ELFW(R_SYM)(rel[i].r_info);
-        ElfW(Word)* addr = (ElfW(Word)*) ((size_t) base + rel[i].r_offset);
+    for (size_t i = 0; i < relsz / sizeof(mcpelauncher_elf_rel); i++) {
+        ElfW(Word) type = ELFW(R_TYPE)(((mcpelauncher_elf_rel*)rel)[i].r_info);
+        ElfW(Word) sym = ELFW(R_SYM)(((mcpelauncher_elf_rel*)rel)[i].r_info);
+        ElfW(Word)* addr = (ElfW(Word)*) ((size_t) base + ((mcpelauncher_elf_rel*)rel)[i].r_offset);
         auto found_symbol = hookedSymbols.find(sym);
         if (found_symbol == hookedSymbols.end())
             continue;
