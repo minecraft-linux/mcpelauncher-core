@@ -39,11 +39,23 @@ static void __android_log_print(int prio, const char *tag, const char *fmt, ...)
 static void __android_log_write(int prio, const char *tag, const char *text) {
     Log::log(convertAndroidLogLevel(prio), tag, "%s", text);
 }
+static void __android_log_assert(const char* cond, const char* tag, const char* fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+    if (fmt) {
+        Log::vlog(LogLevel::LOG_ERROR, tag, fmt, args);
+    } else {
+        Log::log(LogLevel::LOG_ERROR, tag, "Assertion failed: %s", cond);
+    }
+    va_end(args);
+    abort();
+}
 
 void HybrisUtils::hookAndroidLog() {
     linker::load_library("liblog.so", {
         {"__android_log_print", (void*) __android_log_print},
         {"__android_log_vprint", (void*) __android_log_vprint},
         {"__android_log_write", (void*) __android_log_write},
+        {"__android_log_assert", (void*) __android_log_assert},
     });
 }
