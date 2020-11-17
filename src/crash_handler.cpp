@@ -7,6 +7,7 @@
 #include <cxxabi.h>
 #include <execinfo.h>
 #include <mcpelauncher/linker.h>
+#include <thread>
 
 
 bool CrashHandler::hasCrashed = false;
@@ -24,7 +25,22 @@ void CrashHandler::handleSignal(int signal, void *aptr) {
     if (hasCrashed)
         return;
     hasCrashed = true;
+
+    // Workaround against application freeze while dumping stacktrace
+    // stop app from bouncing more than one sec. on crash macOS x86_64
+    std::thread([](){
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+        printf("Backtrace or dumping stack hung up, aborting\n");
+        fflush(stdout);
+        abort();
+    }).detach();
+
+#if defined(__x86_64__) && defined(__APPLE__)
+    // called by more detailed signalhandler with correct stack address
+    void** ptr = (void**)aptr;
+#else
     void** ptr = &aptr;
+#endif
     void *array[25];
     int count = backtrace(array, 25);
     char **symbols = backtrace_symbols(array, count);
@@ -51,7 +67,7 @@ void CrashHandler::handleSignal(int signal, void *aptr) {
     for (int i = 0; i < 1000; i++) {
         void* pptr = *ptr;
         Dl_info symInfo;
-        if (linker::dladdr(pptr, &symInfo)) {
+        if (pptr && linker::dladdr(pptr, &symInfo)) {
             int status = 0;
             nameBuf = abi::__cxa_demangle(symInfo.dli_sname, nameBuf, &nameBufLen, &status);
             printf("#%i HYBRIS %s+%p in %s+0x%4p [0x%4p]\n", i, nameBuf, (void *) ((size_t) pptr - (size_t) symInfo.dli_saddr), symInfo.dli_fname, (void *) ((size_t) pptr - (size_t) symInfo.dli_fbase), pptr);
@@ -64,37 +80,27 @@ void CrashHandler::handleSignal(int signal, void *aptr) {
 
 #if defined(__x86_64__) && defined(__APPLE__)
 void CrashHandler::handle_fs_fault(int sig, void *si, void *ucp) {
-  ucontext_t *uc = (ucontext_t*)ucp;
-  unsigned char *p = (unsigned char *)uc->uc_mcontext->__ss.__rip;
-  if (p && *p == 0x64) {
-    *p = 0x65;
-  } else if (p && *p == 0x65) {
-  } else {
-    // Not a %fs fault, attach normal crash handler to sigsegv
-    struct sigaction act;
-    act.sa_handler = (void (*)(int)) handleSignal;
-    sigemptyset(&act.sa_mask);
-    act.sa_flags = 0;
-    sigaction(SIGSEGV, &act, 0);
-  }
+    ucontext_t *uc = (ucontext_t*)ucp;
+    unsigned char *p = (unsigned char *)uc->uc_mcontext->__ss.__rip;
+    if (p && *p == 0x64) {
+        *p = 0x65;
+    } else if (p && *p == 0x65) {
+    } else {
+        handleSignal(sig, (void**)uc->uc_stack.ss_sp);
+    }
 }
 #endif
 
 void CrashHandler::registerCrashHandler() {
     struct sigaction act;
-    act.sa_handler = (void (*)(int)) handleSignal;
     sigemptyset(&act.sa_mask);
-    act.sa_flags = 0;
 #if defined(__x86_64__) && defined(__APPLE__)
-    {
-        struct sigaction act;
-        act.sa_sigaction = (void (*)(int, __siginfo *, void *)) handle_fs_fault;
-        sigemptyset(&act.sa_mask);
-        act.sa_flags = SA_SIGINFO;
-        sigaction(SIGSEGV, &act, 0);
-    }
+    act.sa_sigaction = (void (*)(int, __siginfo *, void *)) handle_fs_fault;
+    act.sa_flags = SA_SIGINFO;
 #else
-    sigaction(SIGSEGV, &act, 0);
+    act.sa_handler = (void (*)(int)) handleSignal;
+    act.sa_flags = 0;
 #endif
+    sigaction(SIGSEGV, &act, 0);
     sigaction(SIGABRT, &act, 0);
 }
