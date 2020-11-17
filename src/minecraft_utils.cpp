@@ -74,7 +74,7 @@ void MinecraftUtils::setupHybris() {
     HybrisUtils::hookAndroidLog();
     setupApi();
     linker::load_library("libOpenSLES.so", {});
-    linker::load_library("libGLESv1_CM++.so", {});
+    linker::load_library("libGLESv1_CM.so", {});
 
     linker::load_library("libstdc++.so", {});
     linker::load_library("libz.so", {}); // needed for <0.17
