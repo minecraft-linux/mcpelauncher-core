@@ -41,7 +41,7 @@ void* MinecraftUtils::loadLibM() {
 
 void* MinecraftUtils::loadFMod() {
 void* fmodLib = HybrisUtils::loadLibraryOS("libfmod.so", PathHelper::findDataFile(std::string("lib/native/") + getLibraryAbi() +
-#ifndef __APPLE__
+#ifdef __APPLE__
 #if defined(__i386__)
     // Minecraft releases linked against libc++-shared have to use a newer version of libfmod
     // Throwing here allows using pulseaudio if available / starting the game without sound
