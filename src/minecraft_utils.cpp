@@ -127,8 +127,26 @@ void MinecraftUtils::setupApi() {
 
 void* MinecraftUtils::loadMinecraftLib() {
     linker::dlopen("libc++_shared.so", 0);
+#ifdef __arm__
+// Workaround for v8 allocator crash Minecraft 1.16.100+ on a RaspberryPi2 running raspbian
+// Shadow some new overrides with host allocator fixes the crash
+// Seems to be unnecessary on a RaspberryPi4 running ubuntu arm64
+    android_dlextinfo extinfo;
+    std::vector<mcpelauncher_hook_t> hooks;
+    hooks.emplace_back(mcpelauncher_hook_t{ "_Znaj", (void*)((void*(*)(std::size_t))&::operator new[]) });
+    hooks.emplace_back(mcpelauncher_hook_t{ "_Znwj", (void*)((void*(*)(std::size_t))&::operator new) });
+    hooks.emplace_back(mcpelauncher_hook_t{ "_ZnwjSt11align_val_t", (void*)((void*(*)(std::size_t, std::align_val_t))&::operator new[]) });
+// The Openssl cpuid setup seems to not work correctly and allways crashs with "invalid instruction" Minecraft 1.16.10 (beta 1.16.0.66) or lower
+// Shadowing it, avoids allways defining OPENSSL_armcap=0
+    hooks.emplace_back(mcpelauncher_hook_t{ "OPENSSL_cpuid_setup", (void*) + []() -> void {} });
 
+    hooks.emplace_back(mcpelauncher_hook_t{ nullptr, nullptr });
+    extinfo.flags = ANDROID_DLEXT_MCPELAUNCHER_HOOKS;
+    extinfo.mcpelauncher_hooks = hooks.data();
+    void* handle = linker::dlopen_ext("libminecraftpe.so", 0, &extinfo);
+#else
     void* handle = linker::dlopen("libminecraftpe.so", 0);
+#endif
     if (handle == nullptr) {
         Log::error("MinecraftUtils", "Failed to load Minecraft: %s", linker::dlerror());
     } else {
