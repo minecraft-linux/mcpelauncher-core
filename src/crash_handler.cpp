@@ -103,4 +103,12 @@ void CrashHandler::registerCrashHandler() {
 #endif
     sigaction(SIGSEGV, &act, 0);
     sigaction(SIGABRT, &act, 0);
+    // Ignore SIGTRAP of 1.16.100.51++
+    // ToDo find all debugbreaks
+    {
+        struct sigaction act;
+        act.sa_handler = SIG_IGN;
+        sigemptyset(&act.sa_mask);
+        sigaction(SIGTRAP, &act, 0);
+    }
 }
