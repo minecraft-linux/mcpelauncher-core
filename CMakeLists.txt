@@ -10,6 +10,14 @@ add_library(mcpelauncher-core include/mcpelauncher/hook.h include/mcpelauncher/m
 target_include_directories(mcpelauncher-core PUBLIC include/)
 target_link_libraries(mcpelauncher-core mcpelauncher-common logger linker libc-shim minecraft-imported-symbols file-util ${CMAKE_DL_LIBS})
 
+# Enter linker private compat
+get_target_property(LINKER_PRIVATE_INCLUDE_DIRECTORIES linker INCLUDE_DIRECTORIES)
+get_target_property(LINKER_PRIVATE_COMPILE_OPTIONS linker COMPILE_OPTIONS)
+get_target_property(LINKER_PRIVATE_COMPILE_DEFINITIONS linker COMPILE_DEFINITIONS)
+target_include_directories(mcpelauncher-core PRIVATE ${LINKER_PRIVATE_INCLUDE_DIRECTORIES})
+target_compile_definitions(mcpelauncher-core PRIVATE ${LINKER_PRIVATE_COMPILE_DEFINITIONS})
+target_compile_options(mcpelauncher-core PRIVATE ${LINKER_PRIVATE_COMPILE_OPTIONS})
+
 if (APPLE)
     target_link_libraries(mcpelauncher-core osx-elf-header)
 endif()
