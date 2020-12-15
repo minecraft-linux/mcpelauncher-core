@@ -87,7 +87,7 @@ void MinecraftUtils::setupHybris() {
     linker::load_library("libz.so", {}); // needed for <0.17
 }
 
-void MinecraftUtils::setupApi() {
+std::unordered_map<std::string, void*> MinecraftUtils::getApi() {
     std::unordered_map<std::string, void*> syms;
     syms["mcpelauncher_log"] = (void*) Log::log;
     syms["mcpelauncher_vlog"] = (void*) Log::vlog;
@@ -122,7 +122,11 @@ void MinecraftUtils::setupApi() {
     syms["mcpelauncher_hook2_apply"] = (void *) (void (*)()) []() {
         HookManager::instance.applyHooks();
     };
-    linker::load_library("libmcpelauncher_mod.so", syms);
+    return syms;
+}
+
+void MinecraftUtils::setupApi() {
+    linker::load_library("libmcpelauncher_mod.so", getApi());
 }
 
 void* MinecraftUtils::loadMinecraftLib() {
