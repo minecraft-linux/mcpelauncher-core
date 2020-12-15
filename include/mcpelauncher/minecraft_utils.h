@@ -9,6 +9,8 @@ private:
     static void setupApi();
 
 public:
+    static std::unordered_map<std::string, void*> getApi();
+    
     static void workaroundLocaleBug();
 
     static std::unordered_map<std::string, void*> getLibCSymbols();
