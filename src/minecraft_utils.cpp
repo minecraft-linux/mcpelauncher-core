@@ -141,9 +141,12 @@ void* MinecraftUtils::loadMinecraftLib(void *showMousePointerCallback, void *hid
 // Shadowing it, avoids allways defining OPENSSL_armcap=0
     hooks.emplace_back(mcpelauncher_hook_t{ "OPENSSL_cpuid_setup", (void*) + []() -> void {} });
 #endif
-// Minecraft 1.16.210+ removes the symbols previously used to patch it via vtables, hook instead
-    hooks.emplace_back(mcpelauncher_hook_t{ "_ZN11AppPlatform16showMousePointerEv", showMousePointerCallback });
-    hooks.emplace_back(mcpelauncher_hook_t{ "_ZN11AppPlatform16hideMousePointerEv", hideMousePointerCallback });
+
+// Minecraft 1.16.210+ removes the symbols previously used to patch it via vtables, so use hooks instead if supplied
+    if (showMousePointerCallback && hideMousePointerCallback) {
+        hooks.emplace_back(mcpelauncher_hook_t{ "_ZN11AppPlatform16showMousePointerEv", showMousePointerCallback });
+        hooks.emplace_back(mcpelauncher_hook_t{ "_ZN11AppPlatform16hideMousePointerEv", hideMousePointerCallback });
+    }
 
     hooks.emplace_back(mcpelauncher_hook_t{ nullptr, nullptr });
     extinfo.flags = ANDROID_DLEXT_MCPELAUNCHER_HOOKS;
