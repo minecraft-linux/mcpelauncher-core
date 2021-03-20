@@ -16,7 +16,7 @@ public:
 
     static void setupHybris();
 
-    static void* loadMinecraftLib(void *showMousePointerCallback, void *hideMousePointerCallback);
+    static void* loadMinecraftLib(void *showMousePointerCallback = nullptr, void *hideMousePointerCallback = nullptr);
 
     static void* loadFMod();
     static void stubFMod();
