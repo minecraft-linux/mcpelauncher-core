@@ -130,11 +130,6 @@ void* MinecraftUtils::loadMinecraftLib(void *showMousePointerCallback, void *hid
 
     android_dlextinfo extinfo;
     std::vector<mcpelauncher_hook_t> hooks;
-// Need to stub this until this method doesn't crash the launcher, might need updates to libc-shim
-    hooks.emplace_back(mcpelauncher_hook_t{ "_ZN7Bedrock17configureBreakpadEv", (void*) +[]() {
-// Regression: Do not remove the trace or you will see a crash
-        Log::trace("BEDROCK", "_ZN7Bedrock17configureBreakpadEv");
-    }});
 #ifdef __arm__
 // Workaround for v8 allocator crash Minecraft 1.16.100+ on a RaspberryPi2 running raspbian
 // Shadow some new overrides with host allocator fixes the crash
