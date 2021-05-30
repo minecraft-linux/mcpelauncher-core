@@ -19,7 +19,7 @@ if (APPLE)
     target_link_libraries(mcpelauncher-core osx-elf-header)
 endif()
 
-if (IS_ARMHF_BUILD)
+if (IS_ARMHF_BUILD AND NOT IS_64BIT)
     target_compile_definitions(mcpelauncher-core PRIVATE USE_BIONIC_LIBC)
 endif()
 

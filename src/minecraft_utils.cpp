@@ -40,21 +40,21 @@ void* MinecraftUtils::loadLibM() {
 }
 
 void* MinecraftUtils::loadFMod() {
-    void* fmodLib = HybrisUtils::loadLibraryOS("libfmod.so", PathHelper::findDataFile(std::string("lib/native/") +
+void* fmodLib = HybrisUtils::loadLibraryOS("libfmod.so", PathHelper::findDataFile(std::string("lib/native/") + getLibraryAbi() +
 #ifdef __APPLE__
 #if defined(__i386__)
-    // Minecraft releases (linked) with libc++-shared have to use a newer version of libfmod
-    // Apple have multi arch libs so this should work.
-    (linker::dlopen("libc++_shared.so", 0) ? std::string("x86_64/libfmod.dylib") : (std::string(getLibraryAbi()) + "/libfmod.dylib"))
+    // Minecraft releases linked against libc++-shared have to use a newer version of libfmod
+    // Throwing here allows using pulseaudio if available / starting the game without sound
+    (linker::dlopen("libc++_shared.so", 0) ? throw std::runtime_error("Fmod removed i386 support, after deprecation by Apple") : "/libfmod.dylib")
 #else
-    getLibraryAbi() + "/libfmod.dylib"
+    "/libfmod.dylib"
 #endif
 #else
 #ifdef __LP64__
-    getLibraryAbi() + "/libfmod.so.12.0"
+    "/libfmod.so.12.0"
 #else
-    // Minecraft releases (linked) with libc++-shared have to use a newer version of libfmod
-    getLibraryAbi() + (linker::dlopen("libc++_shared.so", 0) ? "/libfmod.so.12.0" : "/libfmod.so.10.20")
+    // Minecraft releases linked against libc++-shared have to use a newer version of libfmod
+    (linker::dlopen("libc++_shared.so", 0) ? "/libfmod.so.12.0" : "/libfmod.so.10.20")
 #endif
 #endif
 ), fmod_symbols);
@@ -129,8 +129,33 @@ void MinecraftUtils::setupApi() {
     linker::load_library("libmcpelauncher_mod.so", getApi());
 }
 
-void* MinecraftUtils::loadMinecraftLib() {
-    void* handle = linker::dlopen("libminecraftpe.so", 0);
+void* MinecraftUtils::loadMinecraftLib(void *showMousePointerCallback, void *hideMousePointerCallback) {
+    linker::dlopen("libc++_shared.so", 0);
+
+    android_dlextinfo extinfo;
+    std::vector<mcpelauncher_hook_t> hooks;
+#ifdef __arm__
+// Workaround for v8 allocator crash Minecraft 1.16.100+ on a RaspberryPi2 running raspbian
+// Shadow some new overrides with host allocator fixes the crash
+// Seems to be unnecessary on a RaspberryPi4 running ubuntu arm64
+    hooks.emplace_back(mcpelauncher_hook_t{ "_Znaj", (void*)((void*(*)(std::size_t))&::operator new[]) });
+    hooks.emplace_back(mcpelauncher_hook_t{ "_Znwj", (void*)((void*(*)(std::size_t))&::operator new) });
+    hooks.emplace_back(mcpelauncher_hook_t{ "_ZnwjSt11align_val_t", (void*)((void*(*)(std::size_t, std::align_val_t))&::operator new[]) });
+// The Openssl cpuid setup seems to not work correctly and allways crashs with "invalid instruction" Minecraft 1.16.10 (beta 1.16.0.66) or lower
+// Shadowing it, avoids allways defining OPENSSL_armcap=0
+    hooks.emplace_back(mcpelauncher_hook_t{ "OPENSSL_cpuid_setup", (void*) + []() -> void {} });
+#endif
+
+// Minecraft 1.16.210+ removes the symbols previously used to patch it via vtables, so use hooks instead if supplied
+    if (showMousePointerCallback && hideMousePointerCallback) {
+        hooks.emplace_back(mcpelauncher_hook_t{ "_ZN11AppPlatform16showMousePointerEv", showMousePointerCallback });
+        hooks.emplace_back(mcpelauncher_hook_t{ "_ZN11AppPlatform16hideMousePointerEv", hideMousePointerCallback });
+    }
+
+    hooks.emplace_back(mcpelauncher_hook_t{ nullptr, nullptr });
+    extinfo.flags = ANDROID_DLEXT_MCPELAUNCHER_HOOKS;
+    extinfo.mcpelauncher_hooks = hooks.data();
+    void* handle = linker::dlopen_ext("libminecraftpe.so", 0, &extinfo);
     if (handle == nullptr) {
         Log::error("MinecraftUtils", "Failed to load Minecraft: %s", linker::dlerror());
     } else {
