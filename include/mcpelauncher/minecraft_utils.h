@@ -8,6 +8,13 @@ class MinecraftUtils {
 private:
     static void setupApi();
 
+    struct HookEntry {
+        void* value;
+        void(*callback)(void*);
+    };
+
+    static std::unordered_map<std::string, HookEntry> preinitHooks;
+
 public:
 
     static std::unordered_map<std::string, void*> getApi();

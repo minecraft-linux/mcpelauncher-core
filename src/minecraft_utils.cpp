@@ -92,6 +92,10 @@ std::unordered_map<std::string, void*> MinecraftUtils::getApi() {
     syms["mcpelauncher_log"] = (void*) Log::log;
     syms["mcpelauncher_vlog"] = (void*) Log::vlog;
 
+    syms["mcpelauncher_preinithook"] = (void*) (void (*)(const char*, void*, void (*)(void*))) [](const char*name, void*sym, void (*callback)(void*)) {
+        preinitHooks[name] = { sym, callback };
+    };
+
     syms["mcpelauncher_hook"] = (void*) (void* (*)(void*, void*, void**)) [](void* sym, void* hook, void** orig) {
         Dl_info i;
         if (!linker::dladdr(sym, &i)) {
@@ -129,6 +133,8 @@ void MinecraftUtils::setupApi() {
     linker::load_library("libmcpelauncher_mod.so", getApi());
 }
 
+std::unordered_map<std::string, MinecraftUtils::HookEntry> MinecraftUtils::preinitHooks;
+
 void* MinecraftUtils::loadMinecraftLib(void *showMousePointerCallback, void *hideMousePointerCallback) {
     linker::dlopen("libc++_shared.so", 0);
 
@@ -146,6 +152,10 @@ void* MinecraftUtils::loadMinecraftLib(void *showMousePointerCallback, void *hid
     hooks.emplace_back(mcpelauncher_hook_t{ "OPENSSL_cpuid_setup", (void*) + []() -> void {} });
 #endif
 
+    for (auto&& e : preinitHooks) {
+        hooks.emplace_back(mcpelauncher_hook_t{ e.first.data(), e.second.value});
+    }
+
 // Minecraft 1.16.210+ removes the symbols previously used to patch it via vtables, so use hooks instead if supplied
     if (showMousePointerCallback && hideMousePointerCallback) {
         hooks.emplace_back(mcpelauncher_hook_t{ "_ZN11AppPlatform16showMousePointerEv", showMousePointerCallback });
@@ -159,6 +169,13 @@ void* MinecraftUtils::loadMinecraftLib(void *showMousePointerCallback, void *hid
     if (handle == nullptr) {
         Log::error("MinecraftUtils", "Failed to load Minecraft: %s", linker::dlerror());
     } else {
+        for (auto&& h : hooks) {
+            if(h.name) {
+                if(auto&& res = preinitHooks.find(h.name); res != preinitHooks.end() && res->second.callback != nullptr) {
+                    res->second.callback(h.value);
+                }
+            }
+        }
         HookManager::instance.addLibrary(handle);
     }
     return handle;

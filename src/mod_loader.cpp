@@ -7,7 +7,7 @@
 #include <mcpelauncher/hook.h>
 #include <mcpelauncher/minecraft_utils.h>
 
-void* ModLoader::loadMod(std::string const& path) {
+void* ModLoader::loadMod(std::string const& path, bool preinit) {
     android_dlextinfo extinfo = { 0 };
     auto api = MinecraftUtils::getApi();
     std::vector<mcpelauncher_hook_t> hooks;
@@ -25,9 +25,10 @@ void* ModLoader::loadMod(std::string const& path) {
     HookManager::instance.addLibrary(handle);
 
     void (*initFunc)();
-    initFunc = (void (*)()) linker::dlsym(handle, "mod_init");
+    auto&& initname = preinit ? "mod_preinit" : "mod_init";
+    initFunc = (void (*)()) linker::dlsym(handle, initname);
     if (((void*) initFunc) == nullptr) {
-        Log::warn("ModLoader", "Mod %s does not have an init function", path.c_str());
+        Log::warn("ModLoader", "Mod %s does not have a %s function", path.c_str(), initname);
         return handle;
     }
     initFunc();
@@ -35,24 +36,34 @@ void* ModLoader::loadMod(std::string const& path) {
     return handle;
 }
 
-void ModLoader::loadModMulti(std::string const& path, std::string const& fileName, std::set<std::string>& otherMods) {
+bool ModLoader::loadModMulti(std::string const& path, std::string const& fileName, std::set<std::string>& otherMods, bool preinit) {
     auto deps = getModDependencies(path + fileName);
+    if(preinit) {
+        for (auto const& dep : deps) {
+            if(dep.find("libminecraftpe.so") != -1) {
+                return false;
+            }
+        }
+    }
     for (auto const& dep : deps) {
         if (otherMods.count(dep) > 0) {
             std::string modName = dep;
             otherMods.erase(dep);
-            loadModMulti(path, modName, otherMods);
+            if(!loadModMulti(path, modName, otherMods, preinit)) {
+                return false;
+            }
             otherMods.erase(dep);
         }
     }
 
     Log::info("ModLoader", "Loading mod: %s", fileName.c_str());
-    void* mod = loadMod(path + fileName);
+    void* mod = loadMod(path + fileName, preinit);
     if (mod != nullptr)
         mods.push_back(mod);
+    return true;
 }
 
-void ModLoader::loadModsFromDirectory(std::string const& path) {
+void ModLoader::loadModsFromDirectory(std::string const& path, bool preinit) {
     DIR* dir = opendir(path.c_str());
     dirent* ent;
     if (dir == nullptr)
@@ -75,7 +86,7 @@ void ModLoader::loadModsFromDirectory(std::string const& path) {
         auto fileName = *it;
         modsToLoad.erase(it);
 
-        loadModMulti(path, fileName, modsToLoad);
+        loadModMulti(path, fileName, modsToLoad, preinit);
     }
     Log::info("ModLoader", "Loaded %li mods", mods.size());
     HookManager::instance.applyHooks();
