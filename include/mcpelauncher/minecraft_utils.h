@@ -10,7 +10,8 @@ private:
 
     struct HookEntry {
         void* value;
-        void(*callback)(void*);
+        void* user;
+        void(*callback)(void*,void*);
     };
 
     static std::unordered_map<std::string, HookEntry> preinitHooks;

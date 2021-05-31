@@ -92,8 +92,14 @@ std::unordered_map<std::string, void*> MinecraftUtils::getApi() {
     syms["mcpelauncher_log"] = (void*) Log::log;
     syms["mcpelauncher_vlog"] = (void*) Log::vlog;
 
-    syms["mcpelauncher_preinithook"] = (void*) (void (*)(const char*, void*, void (*)(void*))) [](const char*name, void*sym, void (*callback)(void*)) {
-        preinitHooks[name] = { sym, callback };
+    syms["mcpelauncher_preinithook2"] = (void*) (void (*)(const char*, void*, void*, void (*)(void*, void*))) [](const char*name, void*sym, void*user, void (*callback)(void*, void*)) {
+        preinitHooks[name] = { sym, user, callback };
+    };
+    syms["mcpelauncher_preinithook"] = (void*) (void (*)(const char*, void*, void **)) [](const char*name, void*sym, void** orig) {
+        auto&& def = [](void* user, void* orig) {
+            *(void**)user = orig;
+        };
+        preinitHooks[name] = { sym, orig, orig ? def : nullptr };
     };
 
     syms["mcpelauncher_hook"] = (void*) (void* (*)(void*, void*, void**)) [](void* sym, void* hook, void** orig) {
@@ -172,7 +178,7 @@ void* MinecraftUtils::loadMinecraftLib(void *showMousePointerCallback, void *hid
         for (auto&& h : hooks) {
             if(h.name) {
                 if(auto&& res = preinitHooks.find(h.name); res != preinitHooks.end() && res->second.callback != nullptr) {
-                    res->second.callback(h.value);
+                    res->second.callback(res->second.user, h.value);
                 }
             }
         }
