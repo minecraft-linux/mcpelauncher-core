@@ -97,7 +97,7 @@ void HookManager::LibInfo::applyHooks(ElfW(Rel)* rel, ElfW(Word) relsz) {
             replacement = (size_t) symInfo.lastHook->replacement;
         else if (replacement == 0)
             continue;
-        Log::trace(TAG, "Found hook for %s at %x", &strtab[symtab[sym].st_name], addr);
+        Log::trace(TAG, "Found hook for %s at %px", &strtab[symtab[sym].st_name], addr);
 
         switch (type) {
             case R_GENERIC_ABSOLUTE:
