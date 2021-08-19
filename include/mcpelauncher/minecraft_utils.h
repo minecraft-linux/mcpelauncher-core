@@ -8,7 +8,18 @@ class MinecraftUtils {
 private:
     static void setupApi();
 
+    struct HookEntry {
+        void* value;
+        void* user;
+        void(*callback)(void*,void*);
+    };
+
+    static std::unordered_map<std::string, HookEntry> preinitHooks;
+
 public:
+
+    static std::unordered_map<std::string, void*> getApi();
+
     static void workaroundLocaleBug();
 
     static std::unordered_map<std::string, void*> getLibCSymbols();

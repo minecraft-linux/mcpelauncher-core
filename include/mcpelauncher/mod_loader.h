@@ -14,11 +14,11 @@ private:
 
     std::vector<std::string> getModDependencies(std::string const& path);
 
-    void loadModMulti(std::string const& path, std::string const& fileName, std::set<std::string>& otherMods);
+    bool loadModMulti(std::string const& path, std::string const& fileName, std::set<std::string>& otherMods, bool preinit = false);
 
 public:
-    void* loadMod(std::string const& path);
+    void* loadMod(std::string const& path, bool preinit);
 
-    void loadModsFromDirectory(std::string const& path);
+    void loadModsFromDirectory(std::string const& path, bool preinit = false);
 
 };
