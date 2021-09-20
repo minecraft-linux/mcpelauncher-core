@@ -21,6 +21,9 @@ void CrashHandler::handleSignal(int signal, void *aptr) {
     act.sa_flags = 0;
     sigaction(SIGSEGV, &act, 0);
     sigaction(SIGABRT, &act, 0);
+    sigaction(SIGFPE, &act, 0);
+    sigaction(SIGBUS, &act, 0);
+    sigaction(SIGILL, &act, 0);
 
     if (hasCrashed)
         return;
@@ -28,11 +31,12 @@ void CrashHandler::handleSignal(int signal, void *aptr) {
 
     // Workaround against application freeze while dumping stacktrace
     // stop app from bouncing more than one sec. on crash macOS x86_64
-    std::thread([](){
+    std::thread([signal](){
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         printf("Backtrace or dumping stack hung up, aborting\n");
+        printf("Why does some people think exit code %d is something meanful? It is just a unix signal number.\n", signal);
         fflush(stdout);
-        abort();
+        _Exit(signal);
     }).detach();
 
 #if defined(__x86_64__) && defined(__APPLE__)
@@ -74,8 +78,9 @@ void CrashHandler::handleSignal(int signal, void *aptr) {
         }
         ptr++;
     }
+    printf("Why does some people think exit code %d is meaningful? It is just a unix signal number.\n", signal);
     fflush(stdout);
-    abort();
+    _Exit(signal);
 }
 
 #if defined(__x86_64__) && defined(__APPLE__)
@@ -103,6 +108,10 @@ void CrashHandler::registerCrashHandler() {
 #endif
     sigaction(SIGSEGV, &act, 0);
     sigaction(SIGABRT, &act, 0);
+    sigaction(SIGFPE, &act, 0);
+    sigaction(SIGBUS, &act, 0);
+    sigaction(SIGILL, &act, 0);
+    
     // Ignore SIGTRAP of 1.16.100.51++
     // ToDo find all debugbreaks
     {
