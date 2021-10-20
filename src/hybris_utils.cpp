@@ -4,7 +4,7 @@
 #include <dlfcn.h>
 #include <mcpelauncher/linker.h>
 
-const char* HybrisUtils::TAG = "HybrisUtils";
+const char* HybrisUtils::TAG = "LinkerUtils";
 
 
 bool HybrisUtils::loadLibrary(std::string path) {
