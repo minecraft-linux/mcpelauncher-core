@@ -177,7 +177,9 @@ void* MinecraftUtils::loadMinecraftLib(void *showMousePointerCallback, void *hid
     } else {
         for (auto&& h : hooks) {
             if(h.name) {
+                printf("Found hook: %s @ %p\n", h.name, linker::dlsym(handle, h.name));
                 if(auto&& res = preinitHooks.find(h.name); res != preinitHooks.end() && res->second.callback != nullptr) {
+                    printf("with value: %p\n", h.value);
                     res->second.callback(res->second.user, h.value);
                 }
             }
@@ -197,12 +199,13 @@ size_t MinecraftUtils::getLibraryBase(void *handle) {
 void MinecraftUtils::setupGLES2Symbols(void* (*resolver)(const char *)) {
     int i = 0;
     std::unordered_map<std::string, void*> syms;
-    while (true) {
-        const char* sym = glesv2_symbols[i];
-        if (sym == nullptr)
-            break;
-        syms[sym] = resolver(sym);
-        i++;
-    }
+    // Disabled, due to linker change
+    // while (true) {
+    //     const char* sym = glesv2_symbols[i];
+    //     if (sym == nullptr)
+    //         break;
+    //     syms[sym] = resolver(sym);
+    //     i++;
+    // }
     linker::load_library("libGLESv2.so", syms);
 }
