@@ -119,8 +119,9 @@ void CrashHandler::registerCrashHandler() {
         act.sa_handler = SIG_IGN;
         sigemptyset(&act.sa_mask);
         sigaction(SIGTRAP, &act, 0);
-#if defined(__i386__) && defined(__APPLE__)
+#if defined(__APPLE__)
         // Try to ignore this for macOS 10.12 and older and Minecraft 1.16.230+
+        // macOS 12.3 bug reports, crash with sigsys
         sigaction(SIGSYS, &act, 0);
 #endif
     }
