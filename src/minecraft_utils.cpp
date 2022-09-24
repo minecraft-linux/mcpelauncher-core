@@ -199,13 +199,12 @@ size_t MinecraftUtils::getLibraryBase(void *handle) {
 void MinecraftUtils::setupGLES2Symbols(void* (*resolver)(const char *)) {
     int i = 0;
     std::unordered_map<std::string, void*> syms;
-    // Disabled, due to linker change
-    // while (true) {
-    //     const char* sym = glesv2_symbols[i];
-    //     if (sym == nullptr)
-    //         break;
-    //     syms[sym] = resolver(sym);
-    //     i++;
-    // }
+    while (true) {
+        const char* sym = glesv2_symbols[i];
+        if (sym == nullptr)
+            break;
+        syms[sym] = resolver(sym);
+        i++;
+    }
     linker::load_library("libGLESv2.so", syms);
 }
