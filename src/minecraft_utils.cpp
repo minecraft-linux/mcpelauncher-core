@@ -168,6 +168,9 @@ void* MinecraftUtils::loadMinecraftLib(void *showMousePointerCallback, void *hid
         hooks.emplace_back(mcpelauncher_hook_t{ "_ZN11AppPlatform16hideMousePointerEv", hideMousePointerCallback });
     }
 
+    hooks.emplace_back(mcpelauncher_hook_t{ "_ZNK11AppPlatform23getMaxSimRadiusInChunksEv", (void *) +[]() { return 12; } });
+    hooks.emplace_back(mcpelauncher_hook_t{ "_ZNK11AppPlatform27getDefaultNetworkMaxPlayersEv", (void *) +[]() { return 8; } });
+    
     hooks.emplace_back(mcpelauncher_hook_t{ nullptr, nullptr });
     extinfo.flags = ANDROID_DLEXT_MCPELAUNCHER_HOOKS;
     extinfo.mcpelauncher_hooks = hooks.data();
