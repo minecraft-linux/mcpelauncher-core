@@ -39,7 +39,7 @@ void CrashHandler::handleSignal(int signal, void *aptr) {
         _Exit(signal);
     }).detach();
 
-#if defined(__x86_64__) && defined(__APPLE__)
+#if (defined(__x86_64__) || defined(__aarch64__)) && defined(__APPLE__)
     // called by more detailed signalhandler with correct stack address
     void** ptr = (void**)aptr;
 #else
@@ -96,14 +96,49 @@ void CrashHandler::handle_fs_fault(int sig, void *si, void *ucp) {
 }
 #endif
 
+#if defined(__aarch64__) && defined(__APPLE__)
+#include <libkern/OSCacheControl.h>
+#include <pthread.h>
+
+static void handle_tpidr_el0_fault(int sig, siginfo_t *info, ucontext_t *uap) {
+    printf("handle_tpidr_el0_fault pc %llx\n", (long long)uap->uc_mcontext->__ss.__pc);
+    printf("-9 instruction %x\n", *(uint32_t*)(intptr_t)(uap->uc_mcontext->__ss.__pc - 36));
+    printf("-8 instruction %x\n", *(uint32_t*)(intptr_t)(uap->uc_mcontext->__ss.__pc - 32));
+    printf("-7 instruction %x\n", *(uint32_t*)(intptr_t)(uap->uc_mcontext->__ss.__pc - 28));
+    printf("-6 instruction %x\n", *(uint32_t*)(intptr_t)(uap->uc_mcontext->__ss.__pc - 24));
+    printf("-5 instruction %x\n", *(uint32_t*)(intptr_t)(uap->uc_mcontext->__ss.__pc - 20));
+    printf("-4 instruction %x\n", *(uint32_t*)(intptr_t)(uap->uc_mcontext->__ss.__pc - 16));
+    printf("-3 instruction %x\n", *(uint32_t*)(intptr_t)(uap->uc_mcontext->__ss.__pc - 12));
+    printf("-2 instruction %x\n", *(uint32_t*)(intptr_t)(uap->uc_mcontext->__ss.__pc - 8));
+    printf("-1 instruction %x\n", *(uint32_t*)(intptr_t)(uap->uc_mcontext->__ss.__pc - 4));
+    printf("current instruction %x\n", *(uint32_t*)(intptr_t)(uap->uc_mcontext->__ss.__pc));
+    printf("next instruction %x\n", *(uint32_t*)(intptr_t)(uap->uc_mcontext->__ss.__pc + 4));
+    if((*(uint32_t*)(intptr_t)(uap->uc_mcontext->__ss.__pc - 4) & 0xfffffff0) == 0xd53bd040) {
+        printf("detected tpidr_el0 fault, replace with tpidrro_el0\n");
+        uap->uc_mcontext->__ss.__pc -= 4;
+        pthread_jit_write_protect_np(0);
+        *(uint32_t*)(intptr_t)(uap->uc_mcontext->__ss.__pc) = 0xd53bd060 | (*(uint32_t*)(intptr_t)(uap->uc_mcontext->__ss.__pc) & 0x0000000f);
+        printf("retry with patched code\n");
+        pthread_jit_write_protect_np(1);
+        sys_icache_invalidate((void*)(intptr_t)(uap->uc_mcontext->__ss.__pc), 8);
+    } else {
+        printf("call handleSignal, not our error\n");
+        handleSignal(sig, (void**)uc->uc_stack.ss_sp);
+    }
+}
+#endif
+
 void CrashHandler::registerCrashHandler() {
     struct sigaction act;
     sigemptyset(&act.sa_mask);
 #if defined(__x86_64__) && defined(__APPLE__)
-    act.sa_sigaction = (void (*)(int, __siginfo *, void *)) handle_fs_fault;
+    act.sa_sigaction = (decltype(act.sa_sigaction)) handle_fs_fault;
+    act.sa_flags = SA_SIGINFO;
+#elif defined(__aarch64__) && defined(__APPLE__)
+    act.sa_sigaction = (decltype(act.sa_sigaction)) handle_tpidr_el0_fault;
     act.sa_flags = SA_SIGINFO;
 #else
-    act.sa_handler = (void (*)(int)) handleSignal;
+    act.sa_handler = (decltype(act.sa_handler)) handleSignal;
     act.sa_flags = 0;
 #endif
     sigaction(SIGSEGV, &act, 0);
