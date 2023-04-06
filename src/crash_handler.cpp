@@ -116,15 +116,17 @@ void CrashHandler::handle_tcb_fault(int sig, void *si, void *ucp) {
         printf("-1 instruction %x\n", *(uint32_t*)(intptr_t)(uap->uc_mcontext->__ss.__pc - 4));
         printf("current instruction %x\n", *(uint32_t*)(intptr_t)(uap->uc_mcontext->__ss.__pc));
         printf("next instruction %x\n", *(uint32_t*)(intptr_t)(uap->uc_mcontext->__ss.__pc + 4));
-        if((*(uint32_t*)(intptr_t)(uap->uc_mcontext->__ss.__pc - 4) & 0xfffffff0) == 0xd53bd040) {
-            printf("detected tpidr_el0 fault, replace with tpidrro_el0\n");
-            uap->uc_mcontext->__ss.__pc -= 4;
-            pthread_jit_write_protect_np(0);
-            *(uint32_t*)(intptr_t)(uap->uc_mcontext->__ss.__pc) = 0xd53bd060 | (*(uint32_t*)(intptr_t)(uap->uc_mcontext->__ss.__pc) & 0x0000000f);
-            printf("retry with patched code\n");
-            pthread_jit_write_protect_np(1);
-            sys_icache_invalidate((void*)(intptr_t)(uap->uc_mcontext->__ss.__pc), 8);
-            return;
+        for(int i = 1; i < 10; i++) {
+            if((*(uint32_t*)(intptr_t)(uap->uc_mcontext->__ss.__pc - (4 * i)) & 0xffffffe0) == 0xd53bd040) {
+                printf("detected tpidr_el0 fault, replace with tpidrro_el0 -%d\n", i);
+                uap->uc_mcontext->__ss.__pc -= 4 * i;
+                pthread_jit_write_protect_np(0);
+                *(uint32_t*)(intptr_t)(uap->uc_mcontext->__ss.__pc) = 0xd53bd060 | (*(uint32_t*)(intptr_t)(uap->uc_mcontext->__ss.__pc) & 0x0000001f);
+                printf("retry with patched code\n");
+                pthread_jit_write_protect_np(1);
+                sys_icache_invalidate((void*)(intptr_t)(uap->uc_mcontext->__ss.__pc), 8);
+                return;
+            }
         }
     }
     printf("call handleSignal, not our error\n");
