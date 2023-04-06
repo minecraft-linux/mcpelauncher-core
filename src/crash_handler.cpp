@@ -84,7 +84,7 @@ void CrashHandler::handleSignal(int signal, void *aptr) {
 }
 
 #if defined(__x86_64__) && defined(__APPLE__)
-void CrashHandler::handle_fs_fault(int sig, void *si, void *ucp) {
+void CrashHandler::handle_tcb_fault(int sig, void *si, void *ucp) {
     ucontext_t *uc = (ucontext_t*)ucp;
     unsigned char *p = (unsigned char *)uc->uc_mcontext->__ss.__rip;
     if (p && *p == 0x64) {
@@ -100,7 +100,8 @@ void CrashHandler::handle_fs_fault(int sig, void *si, void *ucp) {
 #include <libkern/OSCacheControl.h>
 #include <pthread.h>
 
-static void handle_tpidr_el0_fault(int sig, siginfo_t *info, ucontext_t *uap) {
+void CrashHandler::handle_tcb_fault(int sig, void *si, void *ucp) {
+    ucontext_t *uap = (ucontext_t*)ucp;
     printf("handle_tpidr_el0_fault pc %llx\n", (long long)uap->uc_mcontext->__ss.__pc);
     printf("-9 instruction %x\n", *(uint32_t*)(intptr_t)(uap->uc_mcontext->__ss.__pc - 36));
     printf("-8 instruction %x\n", *(uint32_t*)(intptr_t)(uap->uc_mcontext->__ss.__pc - 32));
@@ -123,7 +124,7 @@ static void handle_tpidr_el0_fault(int sig, siginfo_t *info, ucontext_t *uap) {
         sys_icache_invalidate((void*)(intptr_t)(uap->uc_mcontext->__ss.__pc), 8);
     } else {
         printf("call handleSignal, not our error\n");
-        _Exit(6);
+        handleSignal(sig, (void**)uap->uc_mcontext->__ss.__sp);
     }
 }
 #endif
@@ -131,11 +132,8 @@ static void handle_tpidr_el0_fault(int sig, siginfo_t *info, ucontext_t *uap) {
 void CrashHandler::registerCrashHandler() {
     struct sigaction act;
     sigemptyset(&act.sa_mask);
-#if defined(__x86_64__) && defined(__APPLE__)
-    act.sa_sigaction = (decltype(act.sa_sigaction)) handle_fs_fault;
-    act.sa_flags = SA_SIGINFO;
-#elif defined(__aarch64__) && defined(__APPLE__)
-    act.sa_sigaction = (decltype(act.sa_sigaction)) handle_tpidr_el0_fault;
+#if (defined(__x86_64__) || defined(__aarch64__)) && defined(__APPLE__)
+    act.sa_sigaction = (decltype(act.sa_sigaction)) handle_tcb_fault;
     act.sa_flags = SA_SIGINFO;
 #else
     act.sa_handler = (decltype(act.sa_handler)) handleSignal;
