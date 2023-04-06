@@ -87,7 +87,7 @@ void CrashHandler::handleSignal(int signal, void *aptr) {
 void CrashHandler::handle_tcb_fault(int sig, void *si, void *ucp) {
     ucontext_t *uc = (ucontext_t*)ucp;
     unsigned char *p = (unsigned char *)uc->uc_mcontext->__ss.__rip;
-    if (p && *p == 0x64) {
+    if (p && p > 0x100000 && *p == 0x64) {
         *p = 0x65;
     } else if (p && *p == 0x65) {
     } else {
@@ -102,30 +102,33 @@ void CrashHandler::handle_tcb_fault(int sig, void *si, void *ucp) {
 
 void CrashHandler::handle_tcb_fault(int sig, void *si, void *ucp) {
     ucontext_t *uap = (ucontext_t*)ucp;
-    printf("handle_tpidr_el0_fault pc %llx\n", (long long)uap->uc_mcontext->__ss.__pc);
-    printf("-9 instruction %x\n", *(uint32_t*)(intptr_t)(uap->uc_mcontext->__ss.__pc - 36));
-    printf("-8 instruction %x\n", *(uint32_t*)(intptr_t)(uap->uc_mcontext->__ss.__pc - 32));
-    printf("-7 instruction %x\n", *(uint32_t*)(intptr_t)(uap->uc_mcontext->__ss.__pc - 28));
-    printf("-6 instruction %x\n", *(uint32_t*)(intptr_t)(uap->uc_mcontext->__ss.__pc - 24));
-    printf("-5 instruction %x\n", *(uint32_t*)(intptr_t)(uap->uc_mcontext->__ss.__pc - 20));
-    printf("-4 instruction %x\n", *(uint32_t*)(intptr_t)(uap->uc_mcontext->__ss.__pc - 16));
-    printf("-3 instruction %x\n", *(uint32_t*)(intptr_t)(uap->uc_mcontext->__ss.__pc - 12));
-    printf("-2 instruction %x\n", *(uint32_t*)(intptr_t)(uap->uc_mcontext->__ss.__pc - 8));
-    printf("-1 instruction %x\n", *(uint32_t*)(intptr_t)(uap->uc_mcontext->__ss.__pc - 4));
-    printf("current instruction %x\n", *(uint32_t*)(intptr_t)(uap->uc_mcontext->__ss.__pc));
-    printf("next instruction %x\n", *(uint32_t*)(intptr_t)(uap->uc_mcontext->__ss.__pc + 4));
-    if((*(uint32_t*)(intptr_t)(uap->uc_mcontext->__ss.__pc - 4) & 0xfffffff0) == 0xd53bd040) {
-        printf("detected tpidr_el0 fault, replace with tpidrro_el0\n");
-        uap->uc_mcontext->__ss.__pc -= 4;
-        pthread_jit_write_protect_np(0);
-        *(uint32_t*)(intptr_t)(uap->uc_mcontext->__ss.__pc) = 0xd53bd060 | (*(uint32_t*)(intptr_t)(uap->uc_mcontext->__ss.__pc) & 0x0000000f);
-        printf("retry with patched code\n");
-        pthread_jit_write_protect_np(1);
-        sys_icache_invalidate((void*)(intptr_t)(uap->uc_mcontext->__ss.__pc), 8);
-    } else {
-        printf("call handleSignal, not our error\n");
-        handleSignal(sig, (void**)uap->uc_mcontext->__ss.__sp);
+    auto p = (long long)uap->uc_mcontext->__ss.__pc;
+    printf("handle_tpidr_el0_fault pc %llx\n", p);
+    if(p && p > 0x100000) {
+        printf("-9 instruction %x\n", *(uint32_t*)(intptr_t)(uap->uc_mcontext->__ss.__pc - 36));
+        printf("-8 instruction %x\n", *(uint32_t*)(intptr_t)(uap->uc_mcontext->__ss.__pc - 32));
+        printf("-7 instruction %x\n", *(uint32_t*)(intptr_t)(uap->uc_mcontext->__ss.__pc - 28));
+        printf("-6 instruction %x\n", *(uint32_t*)(intptr_t)(uap->uc_mcontext->__ss.__pc - 24));
+        printf("-5 instruction %x\n", *(uint32_t*)(intptr_t)(uap->uc_mcontext->__ss.__pc - 20));
+        printf("-4 instruction %x\n", *(uint32_t*)(intptr_t)(uap->uc_mcontext->__ss.__pc - 16));
+        printf("-3 instruction %x\n", *(uint32_t*)(intptr_t)(uap->uc_mcontext->__ss.__pc - 12));
+        printf("-2 instruction %x\n", *(uint32_t*)(intptr_t)(uap->uc_mcontext->__ss.__pc - 8));
+        printf("-1 instruction %x\n", *(uint32_t*)(intptr_t)(uap->uc_mcontext->__ss.__pc - 4));
+        printf("current instruction %x\n", *(uint32_t*)(intptr_t)(uap->uc_mcontext->__ss.__pc));
+        printf("next instruction %x\n", *(uint32_t*)(intptr_t)(uap->uc_mcontext->__ss.__pc + 4));
+        if((*(uint32_t*)(intptr_t)(uap->uc_mcontext->__ss.__pc - 4) & 0xfffffff0) == 0xd53bd040) {
+            printf("detected tpidr_el0 fault, replace with tpidrro_el0\n");
+            uap->uc_mcontext->__ss.__pc -= 4;
+            pthread_jit_write_protect_np(0);
+            *(uint32_t*)(intptr_t)(uap->uc_mcontext->__ss.__pc) = 0xd53bd060 | (*(uint32_t*)(intptr_t)(uap->uc_mcontext->__ss.__pc) & 0x0000000f);
+            printf("retry with patched code\n");
+            pthread_jit_write_protect_np(1);
+            sys_icache_invalidate((void*)(intptr_t)(uap->uc_mcontext->__ss.__pc), 8);
+            return;
+        }
     }
+    printf("call handleSignal, not our error\n");
+    handleSignal(sig, (void**)uap->uc_mcontext->__ss.__sp);
 }
 #endif
 
