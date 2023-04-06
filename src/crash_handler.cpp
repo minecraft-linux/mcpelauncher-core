@@ -123,7 +123,7 @@ static void handle_tpidr_el0_fault(int sig, siginfo_t *info, ucontext_t *uap) {
         sys_icache_invalidate((void*)(intptr_t)(uap->uc_mcontext->__ss.__pc), 8);
     } else {
         printf("call handleSignal, not our error\n");
-        handleSignal(sig, (void**)uc->uc_stack.ss_sp);
+        handleSignal(sig, (void**)uap->uc_mcontext->__ss.__sp);
     }
 }
 #endif
