@@ -141,7 +141,7 @@ void MinecraftUtils::setupApi() {
 
 std::unordered_map<std::string, MinecraftUtils::HookEntry> MinecraftUtils::preinitHooks;
 
-void* MinecraftUtils::loadMinecraftLib(void *showMousePointerCallback, void *hideMousePointerCallback) {
+void* MinecraftUtils::loadMinecraftLib(void *showMousePointerCallback, void *hideMousePointerCallback, void *fullscreenCallback) {
     linker::dlopen("libc++_shared.so", 0);
 
     android_dlextinfo extinfo;
@@ -166,6 +166,9 @@ void* MinecraftUtils::loadMinecraftLib(void *showMousePointerCallback, void *hid
     if (showMousePointerCallback && hideMousePointerCallback) {
         hooks.emplace_back(mcpelauncher_hook_t{ "_ZN11AppPlatform16showMousePointerEv", showMousePointerCallback });
         hooks.emplace_back(mcpelauncher_hook_t{ "_ZN11AppPlatform16hideMousePointerEv", hideMousePointerCallback });
+    }
+    if (fullscreenCallback) {
+        hooks.emplace_back(mcpelauncher_hook_t{ "_ZN11AppPlatform17setFullscreenModeE14FullscreenMode", fullscreenCallback });
     }
 
     hooks.emplace_back(mcpelauncher_hook_t{ nullptr, nullptr });
