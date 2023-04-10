@@ -107,11 +107,11 @@ void CrashHandler::handle_tcb_fault(int sig, void *si, void *ucp) {
 void CrashHandler::handle_tcb_fault(int sig, void *si, void *ucp) {
     ucontext_t *uap = (ucontext_t*)ucp;
     auto p = (long long)uap->uc_mcontext->__ss.__pc;
-#ifdef DEBUG_TCB_FAULT
+#if DEBUG_TCB_FAULT
     printf("handle_tpidr_el0_fault pc %llx\n", p);
 #endif
     if(p && p > 0x100000) {
-#ifdef DEBUG_TCB_FAULT
+#if DEBUG_TCB_FAULT
         printf("-9 instruction %x\n", *(uint32_t*)(intptr_t)(uap->uc_mcontext->__ss.__pc - 36));
         printf("-8 instruction %x\n", *(uint32_t*)(intptr_t)(uap->uc_mcontext->__ss.__pc - 32));
         printf("-7 instruction %x\n", *(uint32_t*)(intptr_t)(uap->uc_mcontext->__ss.__pc - 28));
@@ -126,13 +126,13 @@ void CrashHandler::handle_tcb_fault(int sig, void *si, void *ucp) {
 #endif
         for(int i = 1; i < 10; i++) {
             if((*(uint32_t*)(intptr_t)(uap->uc_mcontext->__ss.__pc - (4 * i)) & 0xffffffe0) == 0xd53bd040) {
-#ifdef DEBUG_TCB_FAULT
+#if DEBUG_TCB_FAULT
                 printf("detected tpidr_el0 fault, replace with tpidrro_el0 -%d\n", i);
 #endif
                 uap->uc_mcontext->__ss.__pc -= 4 * i;
                 pthread_jit_write_protect_np(0);
                 *(uint32_t*)(intptr_t)(uap->uc_mcontext->__ss.__pc) = 0xd53bd060 | (*(uint32_t*)(intptr_t)(uap->uc_mcontext->__ss.__pc) & 0x0000001f);
-#ifdef DEBUG_TCB_FAULT
+#if DEBUG_TCB_FAULT
                 printf("retry with patched code\n");
 #endif
                 pthread_jit_write_protect_np(1);
@@ -141,7 +141,7 @@ void CrashHandler::handle_tcb_fault(int sig, void *si, void *ucp) {
             }
         }
     }
-#ifdef DEBUG_TCB_FAULT
+#if DEBUG_TCB_FAULT
     printf("call handleSignal, not our error\n");
 #endif
     handleSignal(sig, (void**)uap->uc_mcontext->__ss.__sp);
