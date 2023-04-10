@@ -124,7 +124,7 @@ void CrashHandler::handle_tcb_fault(int sig, void *si, void *ucp) {
         printf("current instruction %x\n", *(uint32_t*)(intptr_t)(uap->uc_mcontext->__ss.__pc));
         printf("next instruction %x\n", *(uint32_t*)(intptr_t)(uap->uc_mcontext->__ss.__pc + 4));
 #endif
-        for(int i = 1; i < 10; i++) {
+        for(int i = 1; i < 100; i++) {
             if((*(uint32_t*)(intptr_t)(uap->uc_mcontext->__ss.__pc - (4 * i)) & 0xffffffe0) == 0xd53bd040) {
 #if DEBUG_TCB_FAULT
                 printf("detected tpidr_el0 fault, replace with tpidrro_el0 -%d\n", i);
