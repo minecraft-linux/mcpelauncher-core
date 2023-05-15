@@ -16,6 +16,10 @@
 #include <libc_shim.h>
 #include <stdexcept>
 #include <cstring>
+#if defined(__APPLE__) && defined(__aarch64__)
+#include <libkern/OSCacheControl.h>
+#include <pthread.h>
+#endif
 
 void MinecraftUtils::workaroundLocaleBug() {
     setenv("LC_ALL", "C", 1); // HACK: Force set locale to one recognized by MCPE so that the outdated C++ standard library MCPE uses doesn't fail to find one
@@ -89,8 +93,11 @@ void MinecraftUtils::setupHybris() {
 
 std::unordered_map<std::string, void*> MinecraftUtils::getApi() {
     std::unordered_map<std::string, void*> syms;
+    // Deprecated use android liblog
+#if !(defined(__APPLE__) && defined(__aarch64__))
     syms["mcpelauncher_log"] = (void*) Log::log;
     syms["mcpelauncher_vlog"] = (void*) Log::vlog;
+#endif
 
     syms["mcpelauncher_preinithook2"] = (void*) (void (*)(const char*, void*, void*, void (*)(void*, void*))) [](const char*name, void*sym, void*user, void (*callback)(void*, void*)) {
         preinitHooks[name] = { sym, user, callback };
@@ -132,6 +139,22 @@ std::unordered_map<std::string, void*> MinecraftUtils::getApi() {
     syms["mcpelauncher_hook2_apply"] = (void *) (void (*)()) []() {
         HookManager::instance.applyHooks();
     };
+#if defined(__APPLE__) && defined(__aarch64__)
+    syms["mcpelauncher_patch"] = (void *)+ [](void* address, void* data, size_t size) -> void* {
+        pthread_jit_write_protect_np(0);
+        auto ret = memcpy(address, data, size);
+        sys_icache_invalidate(address, size);
+        pthread_jit_write_protect_np(1);
+        return ret;
+    };
+#else
+    syms["mcpelauncher_patch"] = (void *)+ [](void* address, void* data, size_t size) -> void* {
+        return memcpy(address, data, size);
+    };
+#endif
+    syms["mcpelauncher_host_dlopen"] = (void *) dlopen;
+    syms["mcpelauncher_host_dlsym"] = (void *) dlsym;
+    syms["mcpelauncher_host_dlclose"] = (void *) dlclose;
     return syms;
 }
 
