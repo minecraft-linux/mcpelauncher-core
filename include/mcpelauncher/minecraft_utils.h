@@ -38,6 +38,6 @@ public:
 
     static void setupGLES2Symbols(void* (*resolver)(const char*));
 
-    static bool mosueHidden;
+    static bool mouseHidden;
 
 };
