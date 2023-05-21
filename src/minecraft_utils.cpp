@@ -94,6 +94,7 @@ void MinecraftUtils::setupHybris() {
 
 std::unordered_map<std::string, void*> MinecraftUtils::getApi() {
     std::unordered_map<std::string, void*> syms;
+    // Deprecated use android liblog
 #if !(defined(__APPLE__) && defined(__aarch64__))
     syms["mcpelauncher_log"] = (void*) Log::log;
     syms["mcpelauncher_vlog"] = (void*) Log::vlog;
