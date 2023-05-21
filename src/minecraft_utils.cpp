@@ -21,7 +21,7 @@
 #include <pthread.h>
 #endif
 
-bool MinecraftUtils::mosueHidden = false;
+bool MinecraftUtils::mouseHidden = false;
 void MinecraftUtils::workaroundLocaleBug() {
     setenv("LC_ALL", "C", 1); // HACK: Force set locale to one recognized by MCPE so that the outdated C++ standard library MCPE uses doesn't fail to find one
 }
@@ -159,7 +159,7 @@ std::unordered_map<std::string, void*> MinecraftUtils::getApi() {
         return PatchUtils::patternSearch(handle, pattern);
     };
     syms["mcpelauncher_ismouselocked"] = (void *)+ []() -> bool {
-        return mosueHidden;
+        return mouseHidden;
     };
     return syms;
 }
