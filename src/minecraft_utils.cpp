@@ -181,7 +181,7 @@ void* MinecraftUtils::loadMinecraftLib(void *showMousePointerCallback, void *hid
     hooks.emplace_back(mcpelauncher_hook_t{ "OPENSSL_cpuid_setup", (void*) + []() -> void {} });
 #endif
 #ifdef __APPLE__
-    hooks.emplace_back(mcpelauncher_hook_t{ "cpuinfo_get_packages_count", (void*) + []() -> void {} });
+    hooks.emplace_back(mcpelauncher_hook_t{ "cpuinfo_get_packages_count", (void*) + []() -> uint32_t {return 1;} });
     hooks.emplace_back(mcpelauncher_hook_t{ "cpuinfo_get_package", (void*) + []() -> void {} });
 #endif
     for (auto&& e : preinitHooks) {
