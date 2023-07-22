@@ -49,8 +49,13 @@ void PatchUtils::patchCallInstruction(void* patchOff, void* func, bool jump) {
       data--;
     Log::trace(TAG, "Patching - original: %i %i %i %i %i", data[0], data[1], data[2], data[3], data[4]);
     if (thumb) {
-        unsigned char patch[4] = {0xdf, 0xf8, 0x00, 0xf0};
-        memcpy(data, patch, 4);
+        if (((size_t) data) % 4 != 0) {
+            unsigned char patch[4] = {0xdf, 0xf8, 0x02, 0xf0};
+            memcpy(data, patch, 4);
+        } else {
+            unsigned char patch[4] = {0xdf, 0xf8, 0x00, 0xf0};
+            memcpy(data, patch, 4);
+        }
     } else {
         unsigned char patch[4] = {0x04, 0xf0, 0x1f, 0xe5};
         memcpy(data, patch, 4);
