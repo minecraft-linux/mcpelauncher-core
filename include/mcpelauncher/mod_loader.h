@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <map>
 #include <string>
 #include <set>
 
@@ -10,7 +11,11 @@ class ServerInstance;
 class ModLoader {
 
 private:
-    std::vector<void*> mods;
+    struct ModMetaData {
+        bool preinit = false;
+        bool init = false;
+    };
+    std::map<void*, ModMetaData> mods;
 
     std::vector<std::string> getModDependencies(std::string const& path);
 

@@ -22,6 +22,18 @@ void* ModLoader::loadMod(std::string const& path, bool preinit) {
         Log::error("ModLoader", "Failed to load mod %s: %s", path.c_str(), linker::dlerror());
         return nullptr;
     }
+    auto entry = mods.find(handle);
+    if(entry != mods.end()) {
+        // loaded the same mod more than once
+        linker::dlclose(handle);
+        if(preinit ? entry->second.preinit : entry->second.init) {
+            return handle;
+        }
+    }
+
+    mods[handle].preinit |= preinit;
+    mods[handle].init |= !preinit;
+
     HookManager::instance.addLibrary(handle);
 
     void (*initFunc)();
@@ -57,9 +69,7 @@ bool ModLoader::loadModMulti(std::string const& path, std::string const& fileNam
     }
 
     Log::info("ModLoader", "Loading mod: %s", fileName.c_str());
-    void* mod = loadMod(path + fileName, preinit);
-    if (mod != nullptr)
-        mods.push_back(mod);
+    loadMod(path + fileName, preinit);
     return true;
 }
 
