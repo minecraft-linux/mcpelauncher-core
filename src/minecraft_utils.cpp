@@ -21,6 +21,7 @@
 #include <pthread.h>
 #endif
 
+bool MinecraftUtils::nativeFmodLoaded = false;
 void MinecraftUtils::workaroundLocaleBug() {
     setenv("LC_ALL", "C", 1); // HACK: Force set locale to one recognized by MCPE so that the outdated C++ standard library MCPE uses doesn't fail to find one
 }
@@ -66,6 +67,7 @@ void* fmodLib = HybrisUtils::loadLibraryOS("libfmod.so", PathHelper::findDataFil
 ), fmod_symbols);
     if (fmodLib == nullptr)
         throw std::runtime_error("Failed to load fmod");
+    nativeFmodLoaded = true;
     return fmodLib;
 }
 
@@ -197,7 +199,19 @@ void* MinecraftUtils::loadMinecraftLib(void *showMousePointerCallback, void *hid
     if (fullscreenCallback) {
         hooks.emplace_back(mcpelauncher_hook_t{ "_ZN11AppPlatform17setFullscreenModeE14FullscreenMode", fullscreenCallback });
     }
-
+    if (!nativeFmodLoaded) {
+    hooks.emplace_back(mcpelauncher_hook_t{ "_ZN4FMOD6System4initEijPv", (void*) + [](void* t, int maxchannels, int flags, void *extradriverdata) -> int {
+        void* handle = linker::dlopen("libfmod.so", 0);
+        typedef int (*fmod)(void* t, int maxchannels, int flags, void *extradriverdata);
+        typedef int (*fmodsff)(void* t, int maxchannels, int flags, int extradriverdata);
+        fmod fmodinit;
+        fmodsff fmodsf;
+        *(void**)(&fmodinit) = linker::dlsym(handle, "_ZN4FMOD6System4initEijPv");
+        *(void**)(&fmodsf) = linker::dlsym(handle, "_ZN4FMOD6System17setSoftwareFormatEi16FMOD_SPEAKERMODEi");
+        fmodsf(t, 48000, 0, 2);
+        return fmodinit(t, maxchannels, flags, extradriverdata);
+    }});    
+    }
     hooks.emplace_back(mcpelauncher_hook_t{ nullptr, nullptr });
     extinfo.flags = ANDROID_DLEXT_MCPELAUNCHER_HOOKS;
     extinfo.mcpelauncher_hooks = hooks.data();

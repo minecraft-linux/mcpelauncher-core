@@ -8,6 +8,8 @@ class MinecraftUtils {
 private:
     static void setupApi();
 
+    static bool nativeFmodLoaded;
+
     struct HookEntry {
         void* value;
         void* user;
