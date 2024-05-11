@@ -197,11 +197,25 @@ void* MinecraftUtils::loadMinecraftLib(void *showMousePointerCallback, void *hid
     if (fullscreenCallback) {
         hooks.emplace_back(mcpelauncher_hook_t{ "_ZN11AppPlatform17setFullscreenModeE14FullscreenMode", fullscreenCallback });
     }
-
+#ifndef __linux__
+    auto libc = linker::dlopen("libc.so", 0);
+    // webrtc shortcut
+    auto bgetifaddrs = linker::dlsym(libc, "getifaddrs");
+    if(bgetifaddrs) {
+        hooks.emplace_back(mcpelauncher_hook_t{ "_ZN3rtc10getifaddrsEPP7ifaddrs", bgetifaddrs });
+    }
+    auto bfreeifaddrs = linker::dlsym(libc, "freeifaddrs");
+    if(bfreeifaddrs) {
+        hooks.emplace_back(mcpelauncher_hook_t{ "_ZN3rtc11freeifaddrsEP7ifaddrs", bfreeifaddrs });
+    }
+#endif
     hooks.emplace_back(mcpelauncher_hook_t{ nullptr, nullptr });
     extinfo.flags = ANDROID_DLEXT_MCPELAUNCHER_HOOKS;
     extinfo.mcpelauncher_hooks = hooks.data();
     void* handle = linker::dlopen_ext("libminecraftpe.so", 0, &extinfo);
+#ifndef __linux__
+    linker::dlclose(libc);
+#endif
     if (handle == nullptr) {
         Log::error("MinecraftUtils", "Failed to load Minecraft: %s", linker::dlerror());
     } else {
