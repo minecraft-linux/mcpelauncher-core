@@ -184,7 +184,10 @@ void* MinecraftUtils::loadMinecraftLib(void *showMousePointerCallback, void *hid
 // Shadowing it, avoids allways defining OPENSSL_armcap=0
     hooks.emplace_back(mcpelauncher_hook_t{ "OPENSSL_cpuid_setup", (void*) + []() -> void {} });
 #endif
-
+#ifdef __APPLE__
+    hooks.emplace_back(mcpelauncher_hook_t{ "cpuinfo_get_packages_count", (void*) + []() -> uint32_t {return 0;} });
+    hooks.emplace_back(mcpelauncher_hook_t{ "cpuinfo_get_package", (void*) + []() -> void {} });
+#endif
     for (auto&& e : preinitHooks) {
         hooks.emplace_back(mcpelauncher_hook_t{ e.first.data(), e.second.value});
     }
