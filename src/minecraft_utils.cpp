@@ -173,6 +173,16 @@ std::unordered_map<std::string, void*> MinecraftUtils::getApi() {
         } 
         linker::relocate(handle, ventries);
     };
+    syms["mcpelauncher_load_library"] = (void*) +[](const char* name, size_t count, hook_entry* entries) {
+        std::unordered_map<std::string, void*> ventries;
+        for(size_t i = 0; i < count; i++) {
+            ventries[entries[i].name] = entries[i].hook;
+        } 
+        linker::load_library(name, ventries);
+    };
+    syms["mcpelauncher_unload_library"] = (void*) linker::unload_library;
+    syms["mcpelauncher_dlclose_unlocked"] = (void*) linker::dlclose_unlocked;
+    
     return syms;
 }
 
