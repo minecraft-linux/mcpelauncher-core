@@ -159,6 +159,20 @@ std::unordered_map<std::string, void*> MinecraftUtils::getApi() {
     syms["mcpelauncher_host_dlopen"] = (void *) dlopen;
     syms["mcpelauncher_host_dlsym"] = (void *) dlsym;
     syms["mcpelauncher_host_dlclose"] = (void *) dlclose;
+    syms["mcpelauncher_relocate"] = (void*) +[](void* handle, const char* name, void* hook) {
+        linker::relocate(handle, {{ name, hook }});
+    };
+    struct hook_entry {
+        const char* name;
+        void* hook;
+    };
+    syms["mcpelauncher_relocate2"] = (void*) +[](void* handle, size_t count, hook_entry* entries) {
+        std::unordered_map<std::string, void*> ventries;
+        for(size_t i = 0; i < count; i++) {
+            ventries[entries[i].name] = entries[i].hook;
+        } 
+        linker::relocate(handle, ventries);
+    };
     return syms;
 }
 
