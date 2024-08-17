@@ -193,8 +193,18 @@ void MinecraftUtils::setupApi() {
 std::unordered_map<std::string, MinecraftUtils::HookEntry> MinecraftUtils::preinitHooks;
 
 void* MinecraftUtils::loadMinecraftLib(void *showMousePointerCallback, void *hideMousePointerCallback, void *fullscreenCallback) {
-    linker::dlopen("libc++_shared.so", 0);
-
+    auto libcxx = linker::dlopen("libc++_shared.so", 0);
+    // loading libfmod standalone depends on these symbols, libminecraftpe.so changes the loading automatically
+    auto libstdcxx = linker::dlopen("libstdc++.so", 0);
+    if(libcxx) {
+        auto __cxa_pure_virtual = linker::dlsym(libcxx, "__cxa_pure_virtual");
+        auto __cxa_guard_acquire = linker::dlsym(libcxx, "__cxa_guard_acquire");
+        auto __cxa_guard_release = linker::dlsym(libcxx, "__cxa_guard_release");
+        
+        if(__cxa_pure_virtual && __cxa_guard_acquire && __cxa_guard_release) {
+            linker::relocate(libstdcxx, { { "__cxa_pure_virtual", __cxa_pure_virtual}, { "__cxa_guard_acquire", __cxa_guard_acquire}, { "__cxa_guard_release", __cxa_guard_release}});
+        }
+    }
     android_dlextinfo extinfo;
     std::vector<mcpelauncher_hook_t> hooks;
 #ifdef __arm__
@@ -221,6 +231,18 @@ void* MinecraftUtils::loadMinecraftLib(void *showMousePointerCallback, void *hid
     if (fullscreenCallback) {
         hooks.emplace_back(mcpelauncher_hook_t{ "_ZN11AppPlatform17setFullscreenModeE14FullscreenMode", fullscreenCallback });
     }
+
+    void* fmod = linker::dlopen("libfmod.so", 0);
+    if(fmod) {
+        static int (*fmodinit)(void* t, int maxchannels, unsigned int flags, void *extradriverdata) = (decltype(fmodinit))linker::dlsym(fmod, "_ZN4FMOD6System4initEijPv");
+        static int (*fmodsf)(void* t, int samplerate, int speakermode, int numrawspeakers) = (decltype(fmodsf))linker::dlsym(fmod, "_ZN4FMOD6System17setSoftwareFormatEi16FMOD_SPEAKERMODEi");
+        if(fmodinit && fmodsf && linker::get_library_base(fmod)) {
+            hooks.emplace_back(mcpelauncher_hook_t{ "_ZN4FMOD6System4initEijPv", (void*) + [](void* t, int maxchannels, int flags, void *extradriverdata) -> int {
+                fmodsf(t, 48000, 0, 2);
+                return fmodinit(t, maxchannels, flags, extradriverdata);
+            }});
+        }
+    }
     auto libc = linker::dlopen("libc.so", 0);
     // webrtc shortcut
     auto bgetifaddrs = linker::dlsym(libc, "getifaddrs");
@@ -235,7 +257,10 @@ void* MinecraftUtils::loadMinecraftLib(void *showMousePointerCallback, void *hid
     extinfo.flags = ANDROID_DLEXT_MCPELAUNCHER_HOOKS;
     extinfo.mcpelauncher_hooks = hooks.data();
     void* handle = linker::dlopen_ext("libminecraftpe.so", 0, &extinfo);
+    linker::dlclose(fmod);
     linker::dlclose(libc);
+    linker::dlclose(libcxx);
+    linker::dlclose(libstdcxx);
     if (handle == nullptr) {
         Log::error("MinecraftUtils", "Failed to load Minecraft: %s", linker::dlerror());
     } else {
