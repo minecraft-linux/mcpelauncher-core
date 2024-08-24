@@ -208,22 +208,22 @@ void* MinecraftUtils::loadMinecraftLib(void *showMousePointerCallback, void *hid
     android_dlextinfo extinfo;
     std::vector<mcpelauncher_hook_t> hooks;
 #ifdef __arm__
-// Workaround for v8 allocator crash Minecraft 1.16.100+ on a RaspberryPi2 running raspbian
-// Shadow some new overrides with host allocator fixes the crash
-// Seems to be unnecessary on a RaspberryPi4 running ubuntu arm64
+    // Workaround for v8 allocator crash Minecraft 1.16.100+ on a RaspberryPi2 running raspbian
+    // Shadow some new overrides with host allocator fixes the crash
+    // Seems to be unnecessary on a RaspberryPi4 running ubuntu arm64
     hooks.emplace_back(mcpelauncher_hook_t{ "_Znaj", (void*)((void*(*)(std::size_t))&::operator new[]) });
     hooks.emplace_back(mcpelauncher_hook_t{ "_Znwj", (void*)((void*(*)(std::size_t))&::operator new) });
     hooks.emplace_back(mcpelauncher_hook_t{ "_ZnwjSt11align_val_t", (void*)((void*(*)(std::size_t, std::align_val_t))&::operator new[]) });
-// The Openssl cpuid setup seems to not work correctly and allways crashs with "invalid instruction" Minecraft 1.16.10 (beta 1.16.0.66) or lower
-// Shadowing it, avoids allways defining OPENSSL_armcap=0
+    // The Openssl cpuid setup seems to not work correctly and allways crashs with "invalid instruction" Minecraft 1.16.10 (beta 1.16.0.66) or lower
+    // Shadowing it, avoids allways defining OPENSSL_armcap=0
     hooks.emplace_back(mcpelauncher_hook_t{ "OPENSSL_cpuid_setup", (void*) + []() -> void {} });
 #endif
-
+    
     for (auto&& e : preinitHooks) {
         hooks.emplace_back(mcpelauncher_hook_t{ e.first.data(), e.second.value});
     }
-
-// Minecraft 1.16.210+ removes the symbols previously used to patch it via vtables, so use hooks instead if supplied
+    
+    // Minecraft 1.16.210+ removes the symbols previously used to patch it via vtables, so use hooks instead if supplied
     if (showMousePointerCallback && hideMousePointerCallback) {
         hooks.emplace_back(mcpelauncher_hook_t{ "_ZN11AppPlatform16showMousePointerEv", showMousePointerCallback });
         hooks.emplace_back(mcpelauncher_hook_t{ "_ZN11AppPlatform16hideMousePointerEv", hideMousePointerCallback });
@@ -231,16 +231,26 @@ void* MinecraftUtils::loadMinecraftLib(void *showMousePointerCallback, void *hid
     if (fullscreenCallback) {
         hooks.emplace_back(mcpelauncher_hook_t{ "_ZN11AppPlatform17setFullscreenModeE14FullscreenMode", fullscreenCallback });
     }
-
-    static void* fmod = linker::dlopen("libfmod.so", 0);
+    
+    static void* fmod = nullptr;
+    if(!fmod) {
+        fmod = linker::dlopen("libfmod.so", 0);
+    }
     if(fmod) {
-        static int (*fmodinit)(void* t, int maxchannels, unsigned int flags, void *extradriverdata) = (decltype(fmodinit))linker::dlsym(fmod, "_ZN4FMOD6System4initEijPv");
-        static int (*fmodsf)(void* t, int samplerate, int speakermode, int numrawspeakers) = (decltype(fmodsf))linker::dlsym(fmod, "_ZN4FMOD6System17setSoftwareFormatEi16FMOD_SPEAKERMODEi");
-        if(fmodinit && fmodsf && linker::get_library_base(fmod)) {
-            hooks.emplace_back(mcpelauncher_hook_t{ "_ZN4FMOD6System4initEijPv", (void*) + [](void* t, int maxchannels, int flags, void *extradriverdata) -> int {
-                fmodsf(t, 48000, 0, 2);
-                return fmodinit(t, maxchannels, flags, extradriverdata);
-            }});
+        if(linker::get_library_base(fmod)) {
+            static int (*fmodinit)(void* t, int maxchannels, unsigned int flags, void *extradriverdata) = nullptr;
+            fmodinit = (decltype(fmodinit))linker::dlsym(fmod, "_ZN4FMOD6System4initEijPv");
+            static int (*fmodsf)(void* t, int samplerate, int speakermode, int numrawspeakers) = nullptr;
+            fmodsf = (decltype(fmodsf))linker::dlsym(fmod, "_ZN4FMOD6System17setSoftwareFormatEi16FMOD_SPEAKERMODEi");
+            if(fmodinit && fmodsf) {
+                hooks.emplace_back(mcpelauncher_hook_t{ "_ZN4FMOD6System4initEijPv", (void*) + [](void* t, int maxchannels, int flags, void *extradriverdata) -> int {
+                    fmodsf(t, 48000, 0, 2);
+                    return fmodinit(t, maxchannels, flags, extradriverdata);
+                }});
+            }
+        } else {
+            linker::dlclose(fmod);
+            fmod = nullptr;
         }
     }
     auto libc = linker::dlopen("libc.so", 0);
@@ -263,8 +273,10 @@ void* MinecraftUtils::loadMinecraftLib(void *showMousePointerCallback, void *hid
     if (handle == nullptr) {
         Log::error("MinecraftUtils", "Failed to load Minecraft: %s", linker::dlerror());
     } else {
-        // We cannot load this again, so make it static and unload it once
-        linker::dlclose(fmod);
+        if(fmod) {
+            // We cannot load this again, so make it static and unload it once
+            linker::dlclose(fmod);
+        }
         for (auto&& h : hooks) {
             if(h.name) {
                 printf("Found hook: %s @ %p\n", h.name, linker::dlsym(handle, h.name));
