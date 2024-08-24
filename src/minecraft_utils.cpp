@@ -232,7 +232,7 @@ void* MinecraftUtils::loadMinecraftLib(void *showMousePointerCallback, void *hid
         hooks.emplace_back(mcpelauncher_hook_t{ "_ZN11AppPlatform17setFullscreenModeE14FullscreenMode", fullscreenCallback });
     }
 
-    void* fmod = linker::dlopen("libfmod.so", 0);
+    static void* fmod = linker::dlopen("libfmod.so", 0);
     if(fmod) {
         static int (*fmodinit)(void* t, int maxchannels, unsigned int flags, void *extradriverdata) = (decltype(fmodinit))linker::dlsym(fmod, "_ZN4FMOD6System4initEijPv");
         static int (*fmodsf)(void* t, int samplerate, int speakermode, int numrawspeakers) = (decltype(fmodsf))linker::dlsym(fmod, "_ZN4FMOD6System17setSoftwareFormatEi16FMOD_SPEAKERMODEi");
@@ -257,13 +257,14 @@ void* MinecraftUtils::loadMinecraftLib(void *showMousePointerCallback, void *hid
     extinfo.flags = ANDROID_DLEXT_MCPELAUNCHER_HOOKS;
     extinfo.mcpelauncher_hooks = hooks.data();
     void* handle = linker::dlopen_ext("libminecraftpe.so", 0, &extinfo);
-    linker::dlclose(fmod);
     linker::dlclose(libc);
     linker::dlclose(libcxx);
     linker::dlclose(libstdcxx);
     if (handle == nullptr) {
         Log::error("MinecraftUtils", "Failed to load Minecraft: %s", linker::dlerror());
     } else {
+        // We cannot load this again, so make it static and unload it once
+        linker::dlclose(fmod);
         for (auto&& h : hooks) {
             if(h.name) {
                 printf("Found hook: %s @ %p\n", h.name, linker::dlsym(handle, h.name));
