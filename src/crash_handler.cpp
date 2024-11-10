@@ -34,7 +34,7 @@ void CrashHandler::handleSignal(int signal, void *aptr) {
     std::thread([signal](){
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         printf("Backtrace or dumping stack hung up, aborting\n");
-        printf("Why does some people think exit code %d is something meanful? It is just a unix signal number.\n", signal);
+        printf("Signal Number %d\n", signal);
         fflush(stdout);
         _Exit(signal);
     }).detach();
@@ -53,7 +53,7 @@ void CrashHandler::handleSignal(int signal, void *aptr) {
     printf("Backtrace elements: %i\n", count);
     for (int i = 0; i < count; i++) {
         if (symbols[i] == nullptr) {
-            printf("#%i unk [%4p]\n", i, array[i]);
+            printf("# %i unk [%4p]\n", i, array[i]);
             continue;
         }
         if (symbols[i][0] == '[') { // unknown symbol
@@ -61,11 +61,11 @@ void CrashHandler::handleSignal(int signal, void *aptr) {
             if (linker::dladdr(array[i], &symInfo)) {
                 int status = 0;
                 nameBuf = abi::__cxa_demangle(symInfo.dli_sname, nameBuf, &nameBufLen, &status);
-                printf("#%i LINKER %s+%p in %s+0x%4p [0x%4p]\n", i, nameBuf, (void *) ((size_t) array[i] - (size_t) symInfo.dli_saddr), symInfo.dli_fname, (void *) ((size_t) array[i] - (size_t) symInfo.dli_fbase), array[i]);
+                printf("# %i LINKER %s+%p in %s+0x%4p [0x%4p]\n", i, nameBuf, (void *) ((size_t) array[i] - (size_t) symInfo.dli_saddr), symInfo.dli_fname, (void *) ((size_t) array[i] - (size_t) symInfo.dli_fbase), array[i]);
                 continue;
             }
         }
-        printf("#%i %s\n", i, symbols[i]);
+        printf("# %i %s\n", i, symbols[i]);
     }
     printf("Dumping stack...\n");
     for (int i = 0; i < 1000; i++) {
@@ -74,7 +74,7 @@ void CrashHandler::handleSignal(int signal, void *aptr) {
         if (pptr && linker::dladdr(pptr, &symInfo)) {
             int status = 0;
             nameBuf = abi::__cxa_demangle(symInfo.dli_sname, nameBuf, &nameBufLen, &status);
-            printf("#%i LINKER %s+%p in %s+%4p [%4p]\n", i, nameBuf, (void *) ((size_t) pptr - (size_t) symInfo.dli_saddr), symInfo.dli_fname, (void *) ((size_t) pptr - (size_t) symInfo.dli_fbase), pptr);
+            printf("# %i LINKER %s+%p in %s+%4p [%4p]\n", i, nameBuf, (void *) ((size_t) pptr - (size_t) symInfo.dli_saddr), symInfo.dli_fname, (void *) ((size_t) pptr - (size_t) symInfo.dli_fbase), pptr);
         }
         ptr++;
     }
