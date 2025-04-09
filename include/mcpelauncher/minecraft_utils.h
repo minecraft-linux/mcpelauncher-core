@@ -4,20 +4,18 @@
 #include <unordered_map>
 
 class MinecraftUtils {
-
 private:
     static void setupApi();
 
     struct HookEntry {
         void* value;
         void* user;
-        void(*callback)(void*,void*);
+        void (*callback)(void*, void*);
     };
 
     static std::unordered_map<std::string, HookEntry> preinitHooks;
 
 public:
-
     static std::unordered_map<std::string, void*> getApi();
 
     static void workaroundLocaleBug();
@@ -27,15 +25,14 @@ public:
 
     static void setupHybris();
 
-    static void* loadMinecraftLib(void *showMousePointerCallback = nullptr, void *hideMousePointerCallback = nullptr, void *fullscreenCallback = nullptr);
+    static void* loadMinecraftLib(void* showMousePointerCallback = nullptr, void* hideMousePointerCallback = nullptr, void* fullscreenCallback = nullptr, void* closeCallback = nullptr);
 
     static void* loadFMod();
     static void stubFMod();
 
-    static const char *getLibraryAbi();
+    static const char* getLibraryAbi();
 
     static size_t getLibraryBase(void* handle);
 
     static void setupGLES2Symbols(void* (*resolver)(const char*));
-
 };

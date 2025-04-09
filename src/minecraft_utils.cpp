@@ -192,7 +192,7 @@ void MinecraftUtils::setupApi() {
 
 std::unordered_map<std::string, MinecraftUtils::HookEntry> MinecraftUtils::preinitHooks;
 
-void* MinecraftUtils::loadMinecraftLib(void *showMousePointerCallback, void *hideMousePointerCallback, void *fullscreenCallback) {
+void* MinecraftUtils::loadMinecraftLib(void* showMousePointerCallback, void* hideMousePointerCallback, void* fullscreenCallback, void* closeCallback) {
     auto libcxx = linker::dlopen("libc++_shared.so", 0);
     // loading libfmod standalone depends on these symbols, libminecraftpe.so changes the loading automatically
     auto libstdcxx = linker::dlopen("libstdc++.so", 0);
@@ -230,6 +230,10 @@ void* MinecraftUtils::loadMinecraftLib(void *showMousePointerCallback, void *hid
     }
     if (fullscreenCallback) {
         hooks.emplace_back(mcpelauncher_hook_t{ "_ZN11AppPlatform17setFullscreenModeE14FullscreenMode", fullscreenCallback });
+    }
+
+    if(closeCallback) {
+        hooks.emplace_back(mcpelauncher_hook_t{"GameActivity_finish", closeCallback});
     }
     
     static void* fmod = nullptr;
