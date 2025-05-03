@@ -6,7 +6,7 @@ if (NOT APPLE)
     find_package(PNG)
 endif()
 
-add_library(mcpelauncher-core include/mcpelauncher/hook.h include/mcpelauncher/mod_loader.h include/mcpelauncher/hybris_utils.h include/mcpelauncher/patch_utils.h include/mcpelauncher/crash_handler.h include/mcpelauncher/minecraft_utils.h src/hook.cpp src/mod_loader.cpp src/hybris_utils.cpp src/hybris_android_log_hook.cpp src/crash_handler.cpp src/patch_utils.cpp src/minecraft_utils.cpp include/mcpelauncher/minecraft_version.h src/minecraft_version.cpp)
+add_library(mcpelauncher-core include/mcpelauncher/hook.h include/mcpelauncher/mod_loader.h include/mcpelauncher/hybris_utils.h include/mcpelauncher/patch_utils.h include/mcpelauncher/crash_handler.h include/mcpelauncher/minecraft_utils.h src/hook.cpp src/mod_loader.cpp src/hybris_utils.cpp src/hybris_android_log_hook.cpp src/crash_handler.cpp src/patch_utils.cpp src/minecraft_utils.cpp include/mcpelauncher/minecraft_version.h src/minecraft_version.cpp include/mcpelauncher/fmod_utils.h src/fmod_utils.cpp)
 target_include_directories(mcpelauncher-core PUBLIC include/)
 target_link_libraries(mcpelauncher-core PUBLIC mcpelauncher-common logger linker libc-shim minecraft-imported-symbols file-util ${CMAKE_DL_LIBS})
 # Not working
