@@ -2,6 +2,7 @@
 
 #include <mcpelauncher/path_helper.h>
 #include <unordered_map>
+#include <mcpelauncher/linker.h>
 
 class MinecraftUtils {
 private:
@@ -25,7 +26,7 @@ public:
 
     static void setupHybris();
 
-    static void* loadMinecraftLib(void* showMousePointerCallback = nullptr, void* hideMousePointerCallback = nullptr, void* fullscreenCallback = nullptr, void* closeCallback = nullptr);
+    static void* loadMinecraftLib(void* showMousePointerCallback = nullptr, void* hideMousePointerCallback = nullptr, void* fullscreenCallback = nullptr, void* closeCallback = nullptr, std::vector<mcpelauncher_hook_t> hooks = {});
 
     static void* loadFMod();
     static void stubFMod();
