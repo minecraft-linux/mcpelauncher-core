@@ -1,6 +1,7 @@
 #include <mcpelauncher/minecraft_utils.h>
 #include <mcpelauncher/patch_utils.h>
 #include <mcpelauncher/hybris_utils.h>
+#include <mcpelauncher/fmod_utils.h>
 #include <mcpelauncher/hook.h>
 #include <mcpelauncher/path_helper.h>
 #include <mcpelauncher/minecraft_version.h>
@@ -242,14 +243,10 @@ void* MinecraftUtils::loadMinecraftLib(void* showMousePointerCallback, void* hid
     }
     if(fmod) {
         if(linker::get_library_base(fmod)) {
-            static int (*fmodinit)(void* t, int maxchannels, unsigned int flags, void* extradriverdata) = nullptr;
-            fmodinit = (decltype(fmodinit))linker::dlsym(fmod, "_ZN4FMOD6System4initEijPv");
-            static int (*fmodsf)(void* t, int samplerate, int speakermode, int numrawspeakers) = nullptr;
-            fmodsf = (decltype(fmodsf))linker::dlsym(fmod, "_ZN4FMOD6System17setSoftwareFormatEi16FMOD_SPEAKERMODEi");
-            if(fmodinit && fmodsf) {
-                hooks.emplace_back(mcpelauncher_hook_t{"_ZN4FMOD6System4initEijPv", (void*)+[](void* t, int maxchannels, int flags, void* extradriverdata) -> int {
-                                                           fmodsf(t, 48000, 0, 2);
-                                                           return fmodinit(t, maxchannels, flags, extradriverdata);
+            if(FmodUtils::setup(fmod)) {
+                hooks.emplace_back(mcpelauncher_hook_t{"_ZN4FMOD6System4initEijPv", reinterpret_cast<void*>(&FmodUtils::initHook)});
+                hooks.emplace_back(mcpelauncher_hook_t{"_ZN4FMOD6System9setOutputE15FMOD_OUTPUTTYPE", (void*)+[]() {
+                                                           // stub to make the game use aaudio
                                                        }});
             }
         } else {
