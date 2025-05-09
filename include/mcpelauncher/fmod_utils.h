@@ -10,7 +10,7 @@ private:
     static int sampleRate;
 
 public:
-    static void setup(void* handle);
+    static bool setup(void* handle);
     static int initHook(void* system, int maxchannels, unsigned int flags, void* extradriverdata);
     static void setSampleRate(int newSampleRate) {
         sampleRate = newSampleRate;

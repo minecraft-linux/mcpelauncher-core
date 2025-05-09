@@ -17,11 +17,13 @@ static int ReadEnvInt(const char* name, int def = 0) {
     return std::stoi(sval);
 }
 
-void FmodUtils::setup(void* handle) {
+bool FmodUtils::setup(void* handle) {
     FMOD_System_Init = (decltype(FMOD_System_Init))linker::dlsym(handle, "_ZN4FMOD6System4initEijPv");
     FMOD_System_SetSoftwareFormat = (decltype(FMOD_System_SetSoftwareFormat))linker::dlsym(handle, "_ZN4FMOD6System17setSoftwareFormatEi16FMOD_SPEAKERMODEi");
     FMOD_System_SetDSPBufferSize = (decltype(FMOD_System_SetDSPBufferSize))linker::dlsym(handle, "_ZN4FMOD6System16setDSPBufferSizeEji");
     FMOD_System_GetDSPBufferSize = (decltype(FMOD_System_GetDSPBufferSize))linker::dlsym(handle, "_ZN4FMOD6System16getDSPBufferSizeEPjPi");
+
+    return FMOD_System_Init != NULL && FMOD_System_SetSoftwareFormat != NULL && FMOD_System_SetDSPBufferSize != NULL && FMOD_System_GetDSPBufferSize != NULL;
 }
 
 int FmodUtils::initHook(void* system, int maxchannels, unsigned int flags, void* extradriverdata) {
