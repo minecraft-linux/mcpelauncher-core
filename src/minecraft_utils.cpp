@@ -194,7 +194,7 @@ void MinecraftUtils::setupApi() {
 
 std::unordered_map<std::string, MinecraftUtils::HookEntry> MinecraftUtils::preinitHooks;
 
-void* MinecraftUtils::loadMinecraftLib(void* showMousePointerCallback, void* hideMousePointerCallback, void* fullscreenCallback, void* closeCallback) {
+void* MinecraftUtils::loadMinecraftLib(void* showMousePointerCallback, void* hideMousePointerCallback, void* fullscreenCallback, void* closeCallback, std::vector<mcpelauncher_hook_t> hooks) {
     auto libcxx = linker::dlopen("libc++_shared.so", 0);
     // loading libfmod standalone depends on these symbols, libminecraftpe.so changes the loading automatically
     auto libstdcxx = linker::dlopen("libstdc++.so", 0);
@@ -208,7 +208,6 @@ void* MinecraftUtils::loadMinecraftLib(void* showMousePointerCallback, void* hid
         }
     }
     android_dlextinfo extinfo;
-    std::vector<mcpelauncher_hook_t> hooks;
 #ifdef __arm__
     // Workaround for v8 allocator crash Minecraft 1.16.100+ on a RaspberryPi2 running raspbian
     // Shadow some new overrides with host allocator fixes the crash
@@ -244,11 +243,12 @@ void* MinecraftUtils::loadMinecraftLib(void* showMousePointerCallback, void* hid
     }
     if(fmod) {
         if(linker::get_library_base(fmod)) {
-            FmodUtils::setup(fmod);
-
-            hooks.emplace_back(mcpelauncher_hook_t{"_ZN4FMOD6System4initEijPv", reinterpret_cast<void*>(&FmodUtils::initHook)});
-            hooks.emplace_back(mcpelauncher_hook_t{"_ZN4FMOD6System9setOutputE15FMOD_OUTPUTTYPE", (void*)+[]() {
-                                                   }});
+            if(FmodUtils::setup(fmod)) {
+                hooks.emplace_back(mcpelauncher_hook_t{"_ZN4FMOD6System4initEijPv", reinterpret_cast<void*>(&FmodUtils::initHook)});
+                hooks.emplace_back(mcpelauncher_hook_t{"_ZN4FMOD6System9setOutputE15FMOD_OUTPUTTYPE", (void*)+[]() {
+                                                           // stub to make the game use aaudio
+                                                       }});
+            }
         } else {
             linker::dlclose(fmod);
             fmod = nullptr;
