@@ -16,10 +16,10 @@ target_include_directories(mcpelauncher-core PRIVATE ../mcpelauncher-linker/ ../
 target_compile_definitions(mcpelauncher-core PRIVATE PATH_MAX=256 _GNU_SOURCE)
 target_compile_options(mcpelauncher-core PRIVATE -include compat.h)
 if (APPLE)
-    target_link_libraries(mcpelauncher-core osx-elf-header)
+    target_link_libraries(mcpelauncher-core PRIVATE osx-elf-header)
 endif()
 if (FREEBSD)
-    target_link_libraries(mcpelauncher-core execinfo)
+    target_link_libraries(mcpelauncher-core PRIVATE execinfo)
 endif()
 
 if (IS_ARMHF_BUILD AND NOT IS_64BIT)
