@@ -196,6 +196,9 @@ std::unordered_map<std::string, MinecraftUtils::HookEntry> MinecraftUtils::prein
 
 void* MinecraftUtils::loadMinecraftLib(void* showMousePointerCallback, void* hideMousePointerCallback, void* fullscreenCallback, void* closeCallback, std::vector<mcpelauncher_hook_t> hooks) {
     auto libcxx = linker::dlopen("libc++_shared.so", 0);
+    if(!libcxx) {
+        Log::error("MinecraftUtils", "Failed to load libc++_shared: %s", linker::dlerror());
+    }
     // loading libfmod standalone depends on these symbols, libminecraftpe.so changes the loading automatically
     auto libstdcxx = linker::dlopen("libstdc++.so", 0);
     if(libcxx) {
@@ -268,9 +271,15 @@ void* MinecraftUtils::loadMinecraftLib(void* showMousePointerCallback, void* hid
     extinfo.flags = ANDROID_DLEXT_MCPELAUNCHER_HOOKS;
     extinfo.mcpelauncher_hooks = hooks.data();
     void* handle = linker::dlopen_ext("libminecraftpe.so", 0, &extinfo);
-    linker::dlclose(libc);
-    linker::dlclose(libcxx);
-    linker::dlclose(libstdcxx);
+    if(libc) {
+        linker::dlclose(libc);
+    }
+    if(libcxx) {
+        linker::dlclose(libcxx);
+    }
+    if(libstdcxx) {
+        linker::dlclose(libstdcxx);
+    }
     if(handle == nullptr) {
         Log::error("MinecraftUtils", "Failed to load Minecraft: %s", linker::dlerror());
     } else {
