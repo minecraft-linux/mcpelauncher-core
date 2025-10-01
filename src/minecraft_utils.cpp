@@ -26,6 +26,15 @@ void MinecraftUtils::workaroundLocaleBug() {
     setenv("LC_ALL", "C", 1);  // HACK: Force set locale to one recognized by MCPE so that the outdated C++ standard library MCPE uses doesn't fail to find one
 }
 
+static bool ReadEnvFlag(const char* name, bool def = false) {
+    auto val = getenv(name);
+    if(!val) {
+        return def;
+    }
+    std::string sval = val;
+    return sval == "true" || sval == "1" || sval == "on";
+}
+
 std::unordered_map<std::string, void*> MinecraftUtils::getLibCSymbols() {
     std::unordered_map<std::string, void*> syms;
     for(auto const& s : shim::get_shimmed_symbols())
@@ -241,7 +250,8 @@ void* MinecraftUtils::loadMinecraftLib(void* showMousePointerCallback, void* hid
     }
 
     static void* fmod = nullptr;
-    if(!fmod) {
+    // Temporary feature flag to disable native fmod patching
+    if(!fmod && ReadEnvFlag("MCPELAUNCHER_PATCH_FMOD", true)) {
         fmod = linker::dlopen("libfmod.so", 0);
     }
     if(fmod) {
@@ -266,6 +276,11 @@ void* MinecraftUtils::loadMinecraftLib(void* showMousePointerCallback, void* hid
     auto bfreeifaddrs = linker::dlsym(libc, "freeifaddrs");
     if(bfreeifaddrs) {
         hooks.emplace_back(mcpelauncher_hook_t{"_ZN3rtc11freeifaddrsEP7ifaddrs", bfreeifaddrs});
+    }
+    if(ReadEnvFlag("MCPELAUNCHER_DISABLE_TELEMETRY", false)) {
+        hooks.emplace_back(mcpelauncher_hook_t{"_ZN9Microsoft12Applications6Events19TelemetrySystemBase5startEv", (void*)+[]() {
+            Log::error("MinecraftUtils", "TelemetrySystemBase::start");
+        }});
     }
     hooks.emplace_back(mcpelauncher_hook_t{nullptr, nullptr});
     extinfo.flags = ANDROID_DLEXT_MCPELAUNCHER_HOOKS;
