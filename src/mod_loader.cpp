@@ -78,7 +78,7 @@ void ModLoader::loadModsFromDirectory(std::string const& path, bool preinit) {
     dirent* ent;
     if (dir == nullptr)
         return;
-    Log::info("ModLoader", "Loading mods");
+    Log::info("ModLoader", ("Loading mods from " + path).c_str());
     std::set<std::string> modsToLoad;
     while ((ent = readdir(dir)) != NULL) {
         if (ent->d_name[0] == '.')
