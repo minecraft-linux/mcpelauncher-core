@@ -9,8 +9,10 @@ public:
     static int minor;
     static int patch;
     static int revision;
+    static int code;
+    static std::string package;
 
-    static void init();
+    static void init(std::string package, int versionCode);
 
     static bool isAtLeast(int major, int minor, int patch = -1, int revision = -1) {
         return MinecraftVersion::major > major || (MinecraftVersion::major == major &&

@@ -193,6 +193,12 @@ std::unordered_map<std::string, void*> MinecraftUtils::getApi() {
     };
     syms["mcpelauncher_unload_library"] = (void*)linker::unload_library;
     syms["mcpelauncher_dlclose_unlocked"] = (void*)linker::dlclose_unlocked;
+    syms["mcpelauncher_package_name"] = (void*)MinecraftVersion::package.c_str();
+    syms["mcpelauncher_package_version_code"] = (void*)&MinecraftVersion::code;
+    syms["mcpelauncher_package_version_major"] = (void*)&MinecraftVersion::major;
+    syms["mcpelauncher_package_version_minor"] = (void*)&MinecraftVersion::minor;
+    syms["mcpelauncher_package_version_patch"] = (void*)&MinecraftVersion::patch;
+    syms["mcpelauncher_package_version_revision"] = (void*)&MinecraftVersion::revision;
 
     return syms;
 }
