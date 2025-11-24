@@ -21,6 +21,13 @@
 #include <libkern/OSCacheControl.h>
 #include <pthread.h>
 #endif
+#include <unistd.h>
+#include <sys/wait.h>
+#include <sys/stat.h>
+#include <stdexcept>
+#include <cstring>
+#include <errno.h>
+#include <EnvPathUtil.h>
 
 void MinecraftUtils::workaroundLocaleBug() {
     setenv("LC_ALL", "C", 1);  // HACK: Force set locale to one recognized by MCPE so that the outdated C++ standard library MCPE uses doesn't fail to find one
@@ -104,6 +111,143 @@ void MinecraftUtils::setupHybris() {
 
     linker::load_library("libstdc++.so", {});
     linker::load_library("libz.so", {});  // needed for <0.17
+}
+
+static std::vector<const char*> convertToC(std::vector<std::string> const& v) {
+    std::vector<const char*> ret;
+    for (auto const& i : v)
+        ret.push_back(i.c_str());
+    ret.push_back(nullptr);
+    return std::move(ret);
+}
+
+
+struct GoogleCredentials {
+    const char* email;
+    const char* token;
+};
+
+static std::string getUiExecutablePath() {
+    std::string path;
+#ifndef MCPELAUNCHER_UI_PATH
+#define MCPELAUNCHER_UI_PATH "."
+#endif
+    if(EnvPathUtil::findInPath("mcpelauncher-ui-qt", path, MCPELAUNCHER_UI_PATH, EnvPathUtil::getAppDir().c_str()))
+        return path;
+    if(EnvPathUtil::findInPath("mcpelauncher-ui-qt", path))
+        return path;
+    return "mcpelauncher-ui-qt";
+}
+
+static void requestGoogleCredentials(void (*onsuccess)(GoogleCredentials creds), void (*onfailure)(const char* error)) {
+    const void* caller_addr = __builtin_return_address(0);
+    Dl_info info;
+    if(linker::dladdr(caller_addr, &info) != 0) {
+        Log::info("Launcher", "Google credentials requested from %s", info.dli_fname);
+
+        std::vector<std::string> args = {getUiExecutablePath(), "--request-google-credentials", "-v" , "--mod", info.dli_fname};
+        Log::info("Launcher", "Executing google credentials helper: %s", args[0].c_str());
+        char ret[1024];
+
+        int pipes[3][2];
+        static const int PIPE_STDOUT = 0;
+        static const int PIPE_STDERR = 1;
+        static const int PIPE_STDIN = 2;
+        static const int PIPE_READ = 0;
+        static const int PIPE_WRITE = 1;
+
+        pipe(pipes[PIPE_STDOUT]);
+        pipe(pipes[PIPE_STDERR]);
+        pipe(pipes[PIPE_STDIN]);
+
+        int pid;
+        if (!(pid = fork())) {
+            signal(SIGPIPE, SIG_IGN);
+            auto argvc = convertToC(args);
+            dup2(pipes[PIPE_STDOUT][PIPE_WRITE], STDOUT_FILENO);
+            dup2(pipes[PIPE_STDERR][PIPE_WRITE], STDERR_FILENO);
+            dup2(pipes[PIPE_STDIN][PIPE_READ], STDIN_FILENO);
+            close(pipes[PIPE_STDIN][PIPE_WRITE]);
+            close(pipes[PIPE_STDOUT][PIPE_WRITE]);
+            close(pipes[PIPE_STDERR][PIPE_WRITE]);
+            close(pipes[PIPE_STDIN][PIPE_READ]);
+            close(pipes[PIPE_STDOUT][PIPE_READ]);
+            close(pipes[PIPE_STDERR][PIPE_READ]);
+            int r = execvp(argvc[0], (char**) argvc.data());
+            printf("Show: execvp() error %i %s", r, strerror(errno));
+            close(STDOUT_FILENO);
+            close(STDERR_FILENO);
+            close(STDIN_FILENO);
+            _exit(r);
+        } else {
+            close(pipes[PIPE_STDIN][PIPE_WRITE]);
+            close(pipes[PIPE_STDIN][PIPE_READ]);
+
+            close(pipes[PIPE_STDOUT][PIPE_WRITE]);
+            close(pipes[PIPE_STDERR][PIPE_WRITE]);
+
+            std::string outputStdOut;
+            std::string outputStdErr;
+            ssize_t r;
+            while ((r = read(pipes[PIPE_STDOUT][PIPE_READ], ret, 1024)) > 0)
+                outputStdOut += std::string(ret, (size_t) r);
+            while ((r = read(pipes[PIPE_STDERR][PIPE_READ], ret, 1024)) > 0)
+                outputStdErr += std::string(ret, (size_t) r);
+
+            close(pipes[PIPE_STDOUT][PIPE_READ]);
+            close(pipes[PIPE_STDERR][PIPE_READ]);
+
+            int status;
+            while(true) {
+                int err = waitpid(pid, &status, 0);
+                if(err == -1) {
+                    if(errno == EINTR) {
+                        continue;
+                    }
+                    onfailure(("Failed to wait for Google credentials process: " + std::string(strerror(errno))).data());
+                    return;
+                }
+                if(WIFSIGNALED(status)) {
+                    onfailure(("Google credentials process terminated by signal " + std::to_string(WTERMSIG(status))).data());
+                    return;
+                }
+                if(!WIFEXITED(status)) {
+                    onfailure("Google credentials process did not exit normally");
+                    return;
+                }
+                break;
+            }
+
+            status = WEXITSTATUS(status);
+
+            if (status == 0) {
+                Log::info("Launcher", "Obtained Google credentials from helper"); 
+                size_t creds = outputStdErr.find("CRED=");
+                if(creds != std::string::npos) {
+                    std::string credstr = outputStdErr.substr(creds + 5);
+                    size_t newline = credstr.find('\n');
+                    if(newline != std::string::npos) {
+                        credstr = credstr.substr(0, newline);
+                    }
+                    size_t sep = credstr.find(':');
+                    if(sep != std::string::npos) {
+                        std::string email = credstr.substr(0, sep);
+                        std::string token = credstr.substr(sep + 1);
+                        onsuccess({email.c_str(), token.c_str()});
+                        return;
+                    }
+                }
+
+                //onsuccess({"user@example.com", "token123"});
+                onfailure(("Failed to parse Google credentials from helper output" + std::to_string(status) + " stdout: " + outputStdOut + " stderr: " + outputStdErr).data());
+            } else {
+                onfailure(("Failed to get Google credentials exit code " + std::to_string(status) + " stdout: " + outputStdOut + " stderr: " + outputStdErr).data());
+            }
+        }
+    } else {
+        Log::error("Launcher", "Google credentials requested from unknown caller");
+        onfailure("Unknown caller");
+    }
 }
 
 std::unordered_map<std::string, void*> MinecraftUtils::getApi() {
@@ -199,6 +343,8 @@ std::unordered_map<std::string, void*> MinecraftUtils::getApi() {
     syms["mcpelauncher_package_version_minor"] = (void*)&MinecraftVersion::minor;
     syms["mcpelauncher_package_version_patch"] = (void*)&MinecraftVersion::patch;
     syms["mcpelauncher_package_version_revision"] = (void*)&MinecraftVersion::revision;
+
+    syms["mcpelauncher_request_google_credentials"] = (void*)requestGoogleCredentials;
 
     return syms;
 }
