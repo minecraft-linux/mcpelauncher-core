@@ -28,6 +28,7 @@
 #include <cstring>
 #include <errno.h>
 #include <EnvPathUtil.h>
+#include <jnivm.h>
 
 void MinecraftUtils::workaroundLocaleBug() {
     setenv("LC_ALL", "C", 1);  // HACK: Force set locale to one recognized by MCPE so that the outdated C++ standard library MCPE uses doesn't fail to find one
@@ -345,6 +346,83 @@ std::unordered_map<std::string, void*> MinecraftUtils::getApi() {
     syms["mcpelauncher_package_version_revision"] = (void*)&MinecraftVersion::revision;
 
     syms["mcpelauncher_request_google_credentials"] = (void*)requestGoogleCredentials;
+
+    // jnivm api to provide java class implementations from mods
+
+    // - jnivm::Object should be able to hold fields values additionally to methods
+    // - jnivm::Class should be able to hold static field values
+    // - api to get the native method pointer by name and signature e.g. VMRunner.executeVM that has no public symbol name
+    // - (to call others use jni api)
+    // - api to register (static)method/(static)field getter(setter)/constructor
+    // - `void jnivm_register_method(JNIEnv* env, jclass cl, int type, const char * signature, const char * name, jvalue (*method)(JNIEnv* env, jobject thiz, jvalue* values))`
+    //     - type & 1 => static (if true thiz is a jclass instance)
+    //     - type & 2 => method
+    //     - type & 4 => getter
+    //     - type & 8 => setter
+
+    syms["jnivm_register_method"] = (void*)+[](JNIEnv* env, jclass cl, int type, const char* name, const char* signature, jvalue (*cbk)(JNIEnv* env, jobject thiz, jvalue* values)) -> bool {
+        auto c = (jnivm::Class*)cl;
+        auto isStatic = (type & 1) != 0;
+        std::shared_ptr<jnivm::Method> method;
+        if(type & 2) { // method
+            auto ccl = std::find_if(c->methods.begin(), c->methods.end(),
+                                    [name, signature, isStatic](std::shared_ptr<jnivm::Method> &m) {
+                                        return m->_static == isStatic && m->name == name && m->signature == signature;
+                                    });
+            if (ccl != c->methods.end()) {
+                method = *ccl;
+            } else {
+                method = std::make_shared<jnivm::Method>();
+                method->name = name;
+                method->_static = isStatic;
+                method->signature = signature;
+                c->methods.push_back(method);
+            }
+        }
+
+        auto org = signature;
+        const char* end = signature + strlen(signature);
+        if(type & 1) { // static
+            if(type & 2) { // method
+                auto retType = std::find(signature, end, ')');
+                if(retType == end) {
+                    return false;
+                }
+                switch(*(retType + 1)) {
+                    case 'V':
+                    {
+                        struct StaticVoidFunction : public jnivm::MethodHandle {
+                        public:
+                            StaticVoidFunction(jvalue (*method)(JNIEnv* env, jobject thiz, jvalue* values)) : method(method) {}
+                            jvalue (*method)(JNIEnv* env, jobject thiz, jvalue* values);
+                            virtual void StaticInvoke(jnivm::ENV * env, jnivm::Class* clazz, const jvalue* values, jnivm::impl::MethodHandleBase<void>) override {
+                                method(env->GetJNIEnv(), (jclass)(clazz), (jvalue*)values);
+                            }
+                        };
+                        method->nativehandle = std::make_shared<StaticVoidFunction>(cbk);
+                        break;
+                    }
+                    case 'L':
+                    case '[':
+                        struct StaticObjectFunction : public jnivm::MethodHandle {
+                        public:
+                            StaticObjectFunction(jvalue (*method)(JNIEnv* env, jobject thiz, jvalue* values)) : method(method) {}
+                            jvalue (*method)(JNIEnv* env, jobject thiz, jvalue* values);
+                            virtual jobject StaticInvoke(jnivm::ENV * env, jnivm::Class* clazz, const jvalue* values, jnivm::impl::MethodHandleBase<jobject>) override {
+                                jvalue ret = method(env->GetJNIEnv(), (jclass)(clazz), (jvalue*)values);
+                                return ret.l;
+                            }
+                        };
+                        method->nativehandle = std::make_shared<StaticObjectFunction>(cbk);
+                        break;
+                    default:
+                        return false;
+                }
+                return true;
+            }
+        }
+        return false;
+    };
 
     return syms;
 }

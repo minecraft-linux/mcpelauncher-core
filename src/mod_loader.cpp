@@ -6,6 +6,7 @@
 #include <queue>
 #include <mcpelauncher/hook.h>
 #include <mcpelauncher/minecraft_utils.h>
+#include <fake-jni/fake-jni.h>
 
 void* ModLoader::loadMod(std::string const& path, bool preinit) {
     android_dlextinfo extinfo = { 0 };
@@ -29,6 +30,12 @@ void* ModLoader::loadMod(std::string const& path, bool preinit) {
         if(preinit ? entry->second.preinit : entry->second.init) {
             return handle;
         }
+    }
+
+    // Always call this for preinit, and only call for init if preinit wasn't called before
+    if(preinit || !mods[handle].preinit) {
+        FakeJni::LocalFrame localFrame;
+        localFrame.getJniEnv().getVM().attachLibrary(path.c_str(), "", { linker::dlopen, linker::dlsym, linker::dlclose });
     }
 
     mods[handle].preinit |= preinit;
