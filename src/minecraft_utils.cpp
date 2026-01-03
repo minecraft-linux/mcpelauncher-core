@@ -250,6 +250,140 @@ static void requestGoogleCredentials(void (*onsuccess)(GoogleCredentials creds),
         onfailure("Unknown caller");
     }
 }
+template<bool isStatic, bool isGetter, bool isSetter, typename T> struct ModHandle;
+template<typename T> struct ModHandle<true, false, false, T> : public jnivm::MethodHandle {
+public:
+    ModHandle(jvalue (*method)(JNIEnv* env, jobject thiz, jvalue* values)) : method(method) {}
+    jvalue (*method)(JNIEnv* env, jobject thiz, jvalue* values);
+    virtual T StaticInvoke(jnivm::ENV * env, jnivm::Class* clazz, const jvalue* values, jnivm::impl::MethodHandleBase<T>) override {
+        jvalue ret = method(env->GetJNIEnv(), (jclass)(clazz), (jvalue*)values);
+        return (T&)ret;
+    }
+};
+
+template<> struct ModHandle<true, false, false, void> : public jnivm::MethodHandle {
+public:
+    ModHandle(jvalue (*method)(JNIEnv* env, jobject thiz, jvalue* values)) : method(method) {}
+    jvalue (*method)(JNIEnv* env, jobject thiz, jvalue* values);
+    virtual void StaticInvoke(jnivm::ENV * env, jnivm::Class* clazz, const jvalue* values, jnivm::impl::MethodHandleBase<void>) override {
+        method(env->GetJNIEnv(), (jclass)(clazz), (jvalue*)values);
+    }
+};
+
+template<typename T> struct ModHandle<false, false, false, T> : public jnivm::MethodHandle {
+public:
+    ModHandle(jvalue (*method)(JNIEnv* env, jobject thiz, jvalue* values)) : method(method) {}
+    jvalue (*method)(JNIEnv* env, jobject thiz, jvalue* values);
+    virtual T InstanceInvoke(jnivm::ENV * env, jobject obj, const jvalue* values, jnivm::impl::MethodHandleBase<T>) override {
+        jvalue ret = method(env->GetJNIEnv(), obj, (jvalue*)values);
+        return (T&)ret;
+    }
+};
+
+
+template<> struct ModHandle<false, false, false, void> : public jnivm::MethodHandle {
+public:
+    ModHandle(jvalue (*method)(JNIEnv* env, jobject thiz, jvalue* values)) : method(method) {}
+    jvalue (*method)(JNIEnv* env, jobject thiz, jvalue* values);
+    virtual void InstanceInvoke(jnivm::ENV * env, jobject obj, const jvalue* values, jnivm::impl::MethodHandleBase<void>) override {
+        method(env->GetJNIEnv(), obj, (jvalue*)values);
+    }
+};
+
+template<typename T> struct ModHandle<true, true, false, T> : public jnivm::MethodHandle {
+public:
+    ModHandle(jvalue (*method)(JNIEnv* env, jobject thiz, jvalue* values)) : method(method) {}
+    jvalue (*method)(JNIEnv* env, jobject thiz, jvalue* values);
+
+    virtual T StaticGet(jnivm::ENV * env, jnivm::Class* clazz, const jvalue* values, jnivm::impl::MethodHandleBase<T>) {
+        jvalue ret = method(env->GetJNIEnv(), (jclass)(clazz), (jvalue*)values);
+        return (T&)ret;
+    }
+};
+
+template<typename T> struct ModHandle<false, true, false, T> : public jnivm::MethodHandle {
+public:
+    ModHandle(jvalue (*method)(JNIEnv* env, jobject thiz, jvalue* values)) : method(method) {}
+    jvalue (*method)(JNIEnv* env, jobject thiz, jvalue* values);
+
+    virtual T InstanceGet(jnivm::ENV * env, jobject obj, const jvalue* values, jnivm::impl::MethodHandleBase<T>) {
+        jvalue ret = method(env->GetJNIEnv(), obj, (jvalue*)values);
+        return (T&)ret;
+    }
+};
+
+template<typename T> struct ModHandle<true, false, true, T> : public jnivm::MethodHandle {
+public:
+    ModHandle(jvalue (*method)(JNIEnv* env, jobject thiz, jvalue* values)) : method(method) {}
+    jvalue (*method)(JNIEnv* env, jobject thiz, jvalue* values);
+
+    virtual void StaticSet(jnivm::ENV * env, jnivm::Class* clazz, const jvalue* values, jnivm::impl::MethodHandleBase<T>) {
+        method(env->GetJNIEnv(), (jclass)(clazz), (jvalue*)values);
+    }
+};
+
+template<typename T> struct ModHandle<false, false, true, T> : public jnivm::MethodHandle {
+public:
+    ModHandle(jvalue (*method)(JNIEnv* env, jobject thiz, jvalue* values)) : method(method) {}
+    jvalue (*method)(JNIEnv* env, jobject thiz, jvalue* values);
+
+    virtual void InstanceSet(jnivm::ENV * env, jobject obj, const jvalue* values, jnivm::impl::MethodHandleBase<T>) {
+        method(env->GetJNIEnv(), obj, (jvalue*)values);
+    }
+};
+
+template<bool isStatic, bool isGetter, bool isSetter>
+bool createModHandleNoVoid(const std::shared_ptr<jnivm::Method>& method, char typeId, jvalue (*cbk)(JNIEnv* env, jobject thiz, jvalue* values)) {
+    switch(typeId) {
+        case 'Z':
+            method->nativehandle = std::make_shared<ModHandle<isStatic, isGetter, isSetter, jboolean>>(cbk);
+            break;
+        case 'B':
+            method->nativehandle = std::make_shared<ModHandle<isStatic, isGetter, isSetter, jbyte>>(cbk);
+            break;
+        case 'C':
+            method->nativehandle = std::make_shared<ModHandle<isStatic, isGetter, isSetter, jchar>>(cbk);
+            break;
+        case 'S':
+            method->nativehandle = std::make_shared<ModHandle<isStatic, isGetter, isSetter, jshort>>(cbk);
+            break;
+        case 'I':
+            method->nativehandle = std::make_shared<ModHandle<isStatic, isGetter, isSetter, jint>>(cbk);
+            break;
+        case 'J':
+            method->nativehandle = std::make_shared<ModHandle<isStatic, isGetter, isSetter, jlong>>(cbk);
+            break;
+        case 'F':
+            method->nativehandle = std::make_shared<ModHandle<isStatic, isGetter, isSetter, jfloat>>(cbk);
+            break;
+        case 'D':   
+            method->nativehandle = std::make_shared<ModHandle<isStatic, isGetter, isSetter, jdouble>>(cbk);
+            break;
+        case 'L':
+        case '[':
+            method->nativehandle = std::make_shared<ModHandle<isStatic, isGetter, isSetter, jobject>>(cbk);
+            break;
+        default:
+            return false;
+    }
+    return true;
+}
+
+template<bool isStatic>
+bool createModFunction(const std::shared_ptr<jnivm::Method>& method, const char *signature, const char *end, jvalue (*cbk)(JNIEnv* env, jobject thiz, jvalue* values)) {
+    auto retType = std::find(signature, end, ')');
+    if(retType == end) {
+        return false;
+    }
+    switch(*(retType + 1)) {
+        case 'V':
+            method->nativehandle = std::make_shared<ModHandle<isStatic, false, false, void>>(cbk);
+            break;
+        default:
+            return createModHandleNoVoid<isStatic, false, false>(method, *(retType + 1), cbk);
+    }
+    return true;
+}
 
 std::unordered_map<std::string, void*> MinecraftUtils::getApi() {
     std::unordered_map<std::string, void*> syms;
@@ -384,41 +518,24 @@ std::unordered_map<std::string, void*> MinecraftUtils::getApi() {
         const char* end = signature + strlen(signature);
         if(type & 1) { // static
             if(type & 2) { // method
-                auto retType = std::find(signature, end, ')');
-                if(retType == end) {
-                    return false;
-                }
-                switch(*(retType + 1)) {
-                    case 'V':
-                    {
-                        struct StaticVoidFunction : public jnivm::MethodHandle {
-                        public:
-                            StaticVoidFunction(jvalue (*method)(JNIEnv* env, jobject thiz, jvalue* values)) : method(method) {}
-                            jvalue (*method)(JNIEnv* env, jobject thiz, jvalue* values);
-                            virtual void StaticInvoke(jnivm::ENV * env, jnivm::Class* clazz, const jvalue* values, jnivm::impl::MethodHandleBase<void>) override {
-                                method(env->GetJNIEnv(), (jclass)(clazz), (jvalue*)values);
-                            }
-                        };
-                        method->nativehandle = std::make_shared<StaticVoidFunction>(cbk);
-                        break;
-                    }
-                    case 'L':
-                    case '[':
-                        struct StaticObjectFunction : public jnivm::MethodHandle {
-                        public:
-                            StaticObjectFunction(jvalue (*method)(JNIEnv* env, jobject thiz, jvalue* values)) : method(method) {}
-                            jvalue (*method)(JNIEnv* env, jobject thiz, jvalue* values);
-                            virtual jobject StaticInvoke(jnivm::ENV * env, jnivm::Class* clazz, const jvalue* values, jnivm::impl::MethodHandleBase<jobject>) override {
-                                jvalue ret = method(env->GetJNIEnv(), (jclass)(clazz), (jvalue*)values);
-                                return ret.l;
-                            }
-                        };
-                        method->nativehandle = std::make_shared<StaticObjectFunction>(cbk);
-                        break;
-                    default:
-                        return false;
-                }
-                return true;
+                return createModFunction<true>(method, org, end, cbk);
+            }
+            if(type & 4) { // getter
+                return createModHandleNoVoid<true, true, false>(method, *org, cbk);
+            }
+            if(type & 8) { // setter
+                return createModHandleNoVoid<true, false, true>(method, *org, cbk);
+            }
+        } else {
+            // Instance
+            if(type & 2) { // method
+                return createModFunction<false>(method, org, end, cbk);
+            }
+            if(type & 4) { // getter
+                return createModHandleNoVoid<false, true, false>(method, *org, cbk);
+            }
+            if(type & 8) { // setter
+                return createModHandleNoVoid<false, false, true>(method, *org, cbk);
             }
         }
         return false;
