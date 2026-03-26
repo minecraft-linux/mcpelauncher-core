@@ -565,6 +565,7 @@ void* MinecraftUtils::loadMinecraftLib(void* showMousePointerCallback, void* hid
         if(__cxa_pure_virtual && __cxa_guard_acquire && __cxa_guard_release) {
             linker::relocate(libstdcxx, {{"__cxa_pure_virtual", __cxa_pure_virtual}, {"__cxa_guard_acquire", __cxa_guard_acquire}, {"__cxa_guard_release", __cxa_guard_release}});
         }
+
     }
     android_dlextinfo extinfo;
 #ifdef __arm__
@@ -595,6 +596,25 @@ void* MinecraftUtils::loadMinecraftLib(void* showMousePointerCallback, void* hid
     if(closeCallback) {
         hooks.emplace_back(mcpelauncher_hook_t{"GameActivity_finish", closeCallback});
     }
+
+    struct EmutlsControl {
+        size_t size;
+        size_t align;
+        uintptr_t index;
+        void* templ;
+    };
+    static auto __emutls_get_address = (void*(*)(EmutlsControl* ctrl))linker::dlsym(libcxx, "__emutls_get_address");
+    hooks.emplace_back(mcpelauncher_hook_t{"__emutls_get_address", (void*)+[](EmutlsControl* ctrl) {
+        double scratch;
+        if(modf(log2(ctrl->align), &scratch) != 0.0) {
+            Log::error("MinecraftUtils", "Unsupported emutls alignment %zu", ctrl->align);
+            ctrl->size = 64;
+            ctrl->align = 8;
+            ctrl->index = 0;
+            ctrl->templ = nullptr;
+        }
+        return __emutls_get_address(ctrl);
+    }});
 
     static void* fmod = nullptr;
     // Temporary feature flag to disable native fmod patching
