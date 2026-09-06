@@ -929,6 +929,17 @@ void* MinecraftUtils::loadMinecraftLib(void* showMousePointerCallback, void* hid
         }
     }
 
+    // On macOS ARM the compatibility libc is an external ELF binary. Unlike
+    // the synthetic libc used on other platforms, it cannot re-export the
+    // host libc-shim functions to a newer APK. Supply every existing shim
+    // export directly while resolving libminecraftpe.so.
+#if defined(__APPLE__) && defined(__aarch64__)
+    for (auto&& entry : getLibCSymbols()) {
+        hooks.emplace_back(mcpelauncher_hook_t{entry.first.data(), entry.second});
+    }
+    hooks.emplace_back(mcpelauncher_hook_t{"pthread_sigmask", (void*)pthread_sigmask});
+    hooks.emplace_back(mcpelauncher_hook_t{"ldiv", (void*)ldiv});
+#endif
     hooks.emplace_back(mcpelauncher_hook_t{nullptr, nullptr});
     extinfo.flags = ANDROID_DLEXT_MCPELAUNCHER_HOOKS;
     extinfo.mcpelauncher_hooks = hooks.data();
